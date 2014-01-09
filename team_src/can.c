@@ -209,6 +209,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 			ops.Change.bit.Flags = 1;
 			break;
 		}
+		ECanaRegs.CANRMP.bit.RMP0 = 1;
   	}
   	//todo USER: Setup other reads
 
