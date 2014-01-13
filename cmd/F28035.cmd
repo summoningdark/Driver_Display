@@ -146,7 +146,7 @@ SECTIONS
 
    /* Initalized sections go in Flash */
    /* For SDFlash to program these, they must be allocated to page 0 */
-   .econst             : > FLASHC      PAGE = 0
+   .econst             : > FLASHE      PAGE = 0
    .switch             : > FLASHC      PAGE = 0
 
    /* Allocate IQ math areas: */

@@ -6,7 +6,7 @@
  */
 
 #include "all.h"
-
+#include "menus.h"
 
 ops_struct ops_temp;
 data_struct data_temp;
@@ -28,20 +28,33 @@ void SensorCov()
 void SensorCovInit()
 {
 	//todo USER: SensorCovInit()
+
+	//config input buttons
+	ButtonGpioInit();
+
+	//initialize the button press queue
+	ButtonPress.Current = 0;
+	ButtonPress.Next = 0;
+	ButtonPress.Full = 0;
+	ButtonPress.Empty = 1;
+
+	//config LCD GPIO pins
+	LCDGpio_init();
+
 	//CONFIG ADC
-	adcinit();
+	//adcinit();
 
 	//CONFIG GP_BUTTON
-	ConfigGPButton();
+	//ConfigGPButton();
 
 	//CONFIG LEDS
 	//led 0
-	ConfigLED0();
+	//ConfigLED0();
 	//led 1
-	ConfigLED1();
+	//ConfigLED1();
 	//CONFIG 12V SWITCH
-	Config12V();
-	conv_watch = StartStopWatch(4);
+	//Config12V();
+	conv_watch = StartStopWatch(1000);
 }
 
 
@@ -54,62 +67,48 @@ void LatchStruct()
 
 void SensorCovMeasure()
 {
+	static int State=0;
 	StopWatchRestart(conv_watch);
 
-	//todo USER: Sensor Conversion
-	//update data_temp and ops_temp
-	//use stopwatch to catch timeouts
-	//waiting should poll isStopWatchComplete() to catch timeout and throw StopWatchError
-
-	readADC();
-	data_temp.adc = A0RESULT;
-
-	data_temp.gp_button = READGPBUTTON();
-
-	if (data_temp.gp_button == 0) 			//if pushed cause stopwatch
+	switch(State)
 	{
-		SETLED0();
-		int i = 0;
-		while (i < 100)
+	case 0:			//default state (race)
+		//check if CAN variable 1 has changed, if so update the display
+		//check if menu button pressed, if so change state to 3
+		break;
+
+	case 1:			//Display 2 with descriptions
+		//check if CAN variables 1 or 2 have changes, if so update the display
+		//check if menu button pressed, if so change state to 3
+		break;
+
+	case 2:			//Display 4 without descriptions
+		//check if any CAN variables have changed, if so update display
+		//check if menu button is pressed, if so change state to 3
+		break;
+
+	case 3:			//Main Menu
+		switch(GetMenuSelection(MainMenuText))
 		{
-			i++;
+
 		}
-	}
-	else
-	{
-		CLEARLED0();
-	}
+		break;
 
-	if (data_temp.adc > 2000)
-	{
-		SETLED1();
-	}
-	else
-	{
-		CLEARLED1();
-	}
+	case 4:			//Select Variable 1
+		break;
 
-	//exit and stopwatch error if timeout
-	if (isStopWatchComplete(conv_watch) == 1)
-	{
-		ops_temp.Flags.bit.cov_error = 1;
-	}
-	else
-	{
-		ops_temp.Flags.bit.cov_error = 0;
-	}
+	case 5:			//Select Variable 2
+		break;
 
+	case 6:			//Select Variable 3
+		break;
 
-	if (ops_temp.Flags.all != 0)
-	{
-		SET12V();
+	case 7:			//Select Variable 4
+		break;
+
+	default:
+		State = 0;
 	}
-	else
-	{
-		CLEAR12V();
-	}
-
-
 }
 
 void UpdateStruct()

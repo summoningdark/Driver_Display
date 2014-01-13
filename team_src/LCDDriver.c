@@ -85,7 +85,7 @@ void print_char(uint8_t txt);
 void del_char(void);
 void pixel(uint8_t S_R, uint8_t x, uint8_t y);
 void line(uint8_t S_R, int8_t x1, int8_t y1, int8_t x2, int8_t y2);
-void circle(uint8_t S_R, uint8_t x, uint8_t y, uint8_t r);
+void circle(uint8_t S_R, int8_t x, int8_t y, int8_t r);
 void draw_block(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t data);
 void box(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
 void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, uint8_t* data);
@@ -605,7 +605,7 @@ uint8_t read_byte(uint8_t byte, uint8_t side)
 
 
 //draws (S_R = 1) or erases (S_R = 0) a circle at x, y with radius r, using midpoint circle algorithm
-void circle(uint8_t S_R, uint8_t x0, uint8_t y0, uint8_t r)
+void circle(uint8_t S_R, int8_t x0, int8_t y0, int8_t r)
 {
 	
 	int8_t f = 1 - r;

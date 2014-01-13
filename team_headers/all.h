@@ -23,11 +23,17 @@
 #include <stdlib.h>
 #include "adc.h"
 #include "gpio.h"
+#include "LCDDriver.h"
+#include "Display.h"
 #include "DSP2803x_GlobalPrototypes.h"
 #include "Flash2803x_API_Library.h"
 
 extern ops_struct ops;
 extern data_struct data;
+
+extern button_queue_struct ButtonPress;
+extern unsigned int ButtonStatus;
+extern unsigned int ButtonCounter[5];
 
 #define CPU_FREQ_MHZ	60
 

@@ -10,6 +10,10 @@
 
 Uint16 MesgID = 5;
 
+button_queue_struct ButtonPress = {0,0,0,0,{0}};
+unsigned int ButtonStatus=0;
+unsigned int ButtonCounter[5]={0,0,0,0,0};
+
 int main(void)
 {
 	StartUp();
