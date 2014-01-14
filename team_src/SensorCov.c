@@ -41,6 +41,12 @@ void SensorCovInit()
 	//config LCD GPIO pins
 	LCDGpio_init();
 
+	//config LED control pins
+	LEDGpio_init();
+
+	//LCD init
+	LCDinit();
+
 	//CONFIG ADC
 	//adcinit();
 

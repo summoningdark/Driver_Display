@@ -81,7 +81,10 @@ void write_block(uint8_t x, uint8_t page, uint8_t length, uint8_t* buf);
 //graphics functions
 void clear_screen(uint8_t option);
 void set_font(const uint8_t *pNewFont);
-void print_char(uint8_t txt);
+void set_cursor(uint8_t x, uint8_t y);
+void print_char(uint8_t txt, int8_t inv);
+void print_cstr(const uint8_t* str, int8_t inv);
+void clear_to_end();
 void del_char(void);
 void pixel(uint8_t S_R, uint8_t x, uint8_t y);
 void line(uint8_t S_R, int8_t x1, int8_t y1, int8_t x2, int8_t y2);
@@ -211,6 +214,16 @@ void clear_screen(uint8_t option)
 	}//end if(option)
 }
 
+void set_cursor(uint8_t x, uint8_t y)
+{
+	x_offset = x;
+	y_offset = y;
+	//coerce values to make sure a char fits in the space
+	if ((x_offset + font_w + font_space) > 127) x_offset = 127 - (font_w + font_space);
+	if (y_offset > (64-font_h)) y_offset = (64-font_h);
+
+}
+
 void set_font(const uint8_t *pNewFont)
 {
 	if (pNewFont==NULL)			//default font
@@ -237,9 +250,17 @@ void set_font(const uint8_t *pNewFont)
 	}
 }
 
-//prints a character to the screen
+//prints a const string. iv inv is 0 prints normally, if inv is 1, prints inverted
+void print_cstr(const uint8_t* str, int8_t inv)
+{
+	uint8_t ch,i;
+	i=0;
+	while((ch=str[i++])!=0) print_char(ch, inv);
+}
+
+//prints a character to the screen, if inv !=0 prints char inverted
 //at x_offset, y_offset(top/left corner of character). Automatically augments offsets for next write
-void print_char(uint8_t txt)
+void print_char(uint8_t txt, int8_t inv)
 {
 
     // x_offset counts pixels from the left side of the screen
@@ -249,37 +270,54 @@ void print_char(uint8_t txt)
 
 	unsigned int temp_buf[128];
 
-	//coerce txt to valid printable character
-	if ((txt<32) || (txt>126)) txt = 32;
-
-	text_array_offset = (txt - 32) * font_bytes+3;	// txt-32 is the ascii offset to 'space', font_bytes is the # of bytes/character, and 3 for font width,height,space which are stores at the beginning of the array
-	
-	//fetch font data from program memory
-	for(j=0;j<font_bytes;j++)
-		temp_buf[j] = *(pFont+text_array_offset);
-
-	//bitblt it
-	//check for half-width characters ( ! ' , . : ; ` ) and adjust x_offset accordingly
-	if ((txt == 33) ||(txt == 39) ||(txt == 44) ||(txt == 46) ||(txt == 58) ||(txt == 59) ||(txt == 96) )
+	if(txt == 0x0D)	//check for CR
 	{
-		bitblt(x_offset, y_offset, font_w, font_h, font_mode, temp_buf);
-		x_offset+=(font_w/4)+font_space;		
+		x_offset = 0;		//reset to start of line
 	}
-	else
-	{	
-		bitblt(x_offset, y_offset, font_w, font_h, font_mode, temp_buf);
-		x_offset+=font_w+font_space;
-	}
-//check x offset and do necessary wrapping
-	
-    if ((x_offset + font_w + font_space) > 127)
+	else if (txt == 0x0A)	//check for LF
 	{
-		x_offset = x_offset % (font_w+font_space);	//this makes sure text on the next line will line up with the previous line
 		if (y_offset > (64-font_h-font_h))
 			y_offset = y_offset % font_h;		//this makes sure that the line restarted at the top will overlap the old one
 		else 
 			y_offset += font_h;
 	}
+	else
+	{
+		//coerce txt to valid printable character
+		if ((txt<32) || (txt>126)) txt = 32;
+
+		text_array_offset = (txt - 32) * font_bytes+3;	// txt-32 is the ascii offset to 'space', font_bytes is the # of bytes/character, and 3 for font width,height,space which are stores at the beginning of the array
+
+		//fetch font data from program memory
+		for(j=0;j<font_bytes;j++)
+		{
+			temp_buf[j] = *(pFont+text_array_offset);
+			if (inv) temp_buf[j] = ~temp_buf[j];
+		}
+
+		//bitblt it
+		//check for half-width characters ( ! ' , . : ; ` ) and adjust x_offset accordingly
+		if ((txt == 33) ||(txt == 39) ||(txt == 44) ||(txt == 46) ||(txt == 58) ||(txt == 59) ||(txt == 96) )
+		{
+			bitblt(x_offset, y_offset, font_w, font_h, font_mode, temp_buf);
+			x_offset+=(font_w/4)+font_space;
+		}
+		else
+		{
+			bitblt(x_offset, y_offset, font_w, font_h, font_mode, temp_buf);
+			x_offset+=font_w+font_space;
+		}
+		//check x offset and do necessary wrapping
+
+		if ((x_offset + font_w + font_space) > 127)
+		{
+			x_offset = x_offset % (font_w+font_space);	//this makes sure text on the next line will line up with the previous line
+			if (y_offset > (64-font_h-font_h))
+				y_offset = y_offset % font_h;		//this makes sure that the line restarted at the top will overlap the old one
+			else
+				y_offset += font_h;
+		}
+	}//end CR/LF/printable if
 }
 
 //write_command_LCD
@@ -666,6 +704,14 @@ void del_char()
 	draw_block(x_offset, y_offset, x_offset+font_w, y_offset+font_h-1,f);	//erase the block
 }
 
+void clear_to_end()
+{
+	uint8_t f;
+	f=0;
+	if (reverse==1)
+		f=0xff;
+	draw_block(x_offset, y_offset, 127, y_offset+font_h-1,f);	//erase the block
+}
 
 //draws a block on the screen. Block is described
 //by a diagonal line from x, y1 to x2, y2
@@ -783,6 +829,7 @@ void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, u
 
 				//Get data
 				temp = ( (data[offset++] << shift) | (data[offset2++] >> shift2) );	//data from ram
+				if(reverse) temp = ~temp;											//invert the data if reverse mode
 				
 				if (mode==6)		//fill is a special case, just use data[0]
 					temp = ( (data[0] << shift) | (data[0] >> shift2) );				

@@ -16,7 +16,8 @@ const unsigned char MainMenuText[][20]={	"Race Mode",
 											"Choose Watch 1",
 											"Choose Watch 2",
 											"Choose Watch 3",
-											"Choose Watch 4"};
+											"Choose Watch 4",
+											""};
 
 
 

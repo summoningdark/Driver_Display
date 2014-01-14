@@ -8,11 +8,15 @@
 #include "all.h"
 
 #define uint8_t unsigned int
+#define int8_t int
 #define uint16_t unsigned int
+#define int16_t int
 
 //function prototypes
+void SetLEDs(uint16_t LEDword);
 unsigned int GetButtonPress();
 int GetMenuSelection(const unsigned char List[][20]);
+void LEDGpio_init();
 void LCDGpio_init();
 void ButtonGpioInit();
 void WriteLCDDataPort(uint8_t Data);	//this function should set whatever pins are used for the LCD data port to outputs, and put Data on the pins
@@ -22,9 +26,113 @@ void LCDdelay();						//a delay of at least 500ns
 void delay_ms(uint16_t ms);				//function to delay ms milliseconds
 void SetLCDControlPort(uint8_t Cmd);	//this function should set whatever pins are used for the LCD control pins to outputs and set the values as follows:
 
+void SetLEDs(uint16_t LEDword)
+{
+	int i;
+	unsigned int d;
+
+	d = LEDword;
+	//pull LEDclk low
+	GpioDataRegs.GPADAT.bit.GPIO18 = 0;
+	//pull LEDclear low, wait, then drive LEDclear high
+	GpioDataRegs.GPADAT.bit.GPIO17 = 0;
+	DELAY_US(1);
+	GpioDataRegs.GPADAT.bit.GPIO17 = 1;
+
+	for(i=0;i<16;i++)
+	{
+		GpioDataRegs.GPADAT.bit.GPIO8 = d & 0x0001;		//place data on pin
+		GpioDataRegs.GPADAT.bit.GPIO18 = 1;				//clk high
+		DELAY_US(1);									//pause
+		GpioDataRegs.GPADAT.bit.GPIO18 = 0;				//clk low
+		DELAY_US(1);									//pause
+		d = d >> 1;										//shift data
+	}
+}
+
 int GetMenuSelection(const unsigned char List[][20])
 {
-	return 1;
+	//these defines determine the size of the menu. NLINES is the number of line the menu consists of.
+#define NLINES 4
+
+	int highlight,offset,i,max;
+
+	//start at the beginning of the menu
+	highlight = 0;
+	offset = 0;
+	//find the end of the menu, marked by an empty string. max = number of menu entries
+	max = 0;
+	while(List[max][0]!=0) max++;
+
+	//set the font to small(default font)
+	set_font(Font);
+	//clear the screen
+	clear_screen(0);
+	//print NLINES lines of the menu starting at line offset, with highlight inverted
+	set_cursor(0,0);
+	for(i=0;i<NLINES;i++)
+	{
+		print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight));		//print line
+		clear_to_end();										//clear the rest of the line (entries may not all be the same length)
+		print_char(0x0D,0);									//CR
+		print_char(0x0A,0);									//LF
+	}
+
+	while(1)
+		switch(GetButtonPress())
+		{
+		case BTN_UP:
+				if(--highlight == -1)			//decrement highlighted line, if it goes off the top,
+					if(--offset == -1)			//decrement the list offset, if it goes off the top
+					{
+						offset = max-NLINES;	//offset to the end
+						highlight = NLINES-1;	//highlight the last row
+					}
+					else
+					{
+						highlight = 0;			//keep highlight at the top
+					}
+				//redraw screen
+				set_cursor(0,0);
+				for(i=0;i<NLINES;i++)
+				{
+					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight));		//print line
+					clear_to_end();										//clear the rest of the line (entries may not all be the same length)
+					print_char(0x0D,0);									//CR
+					print_char(0x0A,0);									//LF
+				}
+			break;
+		case BTN_DOWN:
+				if(++highlight == NLINES)			//increment highlighted line, if it goes off the bottom,
+					if(++offset == max)				//increment the list offset, if it goes off the bottom,
+					{
+						offset = 0;					//offset to the beginning
+						highlight = 0;				//highlight the first row
+					}
+					else
+					{
+						highlight = NLINES-1;		//keep highlight at the bottom
+					}
+				//redraw screen
+				set_cursor(0,0);
+				for(i=0;i<NLINES;i++)
+				{
+					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight));		//print line
+					clear_to_end();										//clear the rest of the line (entries may not all be the same length)
+					print_char(0x0D,0);									//CR
+					print_char(0x0A,0);									//LF
+				}
+			break;
+		case BTN_SELECT:
+				return (highlight+offset);
+			break;
+		case BTN_BACK:
+		case BTN_MENU:
+				return -1;
+			break;
+		default:
+			break;
+		}
 }
 
 unsigned int GetButtonPress()
@@ -41,6 +149,33 @@ unsigned int GetButtonPress()
 	}
 
 	return tmp;
+}
+
+void LEDGpio_init()
+{
+	//mapping:
+	//LED shift clock = GPIO18
+	//LED shift data = GPIO8
+	//LED shift clear = GPIO17
+	//LED word [0:15] = Btn0[0],Btn4[0],Btn3[1],Btn2[1],Btn1[0],Btn4[1],Btn0[1],Btn1[1],Btn2[0],Yellow2,Green2,Red2,Btn3[0],Red1,Green1,Yellow1
+
+	EALLOW;
+		//LEDclk
+	    GpioCtrlRegs.GPAMUX2.bit.GPIO18 = 0;         // GPIO
+	    GpioCtrlRegs.GPADIR.bit.GPIO18 = 1;          // output
+	    GpioCtrlRegs.GPAQSEL2.bit.GPIO18 = 0;        //Synch to SYSCLKOUT only
+	    GpioCtrlRegs.GPAPUD.bit.GPIO18 = 1;          //disable pull up
+	    //LEDdata
+	    GpioCtrlRegs.GPAMUX1.bit.GPIO8 = 0;         // GPIO
+	    GpioCtrlRegs.GPADIR.bit.GPIO8 = 1;          // output
+	    GpioCtrlRegs.GPAQSEL1.bit.GPIO8 = 0;        //Synch to SYSCLKOUT only
+	    GpioCtrlRegs.GPAPUD.bit.GPIO8 = 1;          //disable pull up
+	    //LEDclear
+	    GpioCtrlRegs.GPAMUX2.bit.GPIO17 = 0;         // GPIO
+	    GpioCtrlRegs.GPADIR.bit.GPIO17 = 1;          // output
+	    GpioCtrlRegs.GPAQSEL2.bit.GPIO17 = 0;        //Synch to SYSCLKOUT only
+	    GpioCtrlRegs.GPAPUD.bit.GPIO17 = 1;          //disable pull up
+	EDIS;
 }
 
 void ButtonGpioInit()
