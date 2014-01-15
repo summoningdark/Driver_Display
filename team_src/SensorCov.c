@@ -81,16 +81,25 @@ void SensorCovMeasure()
 	case 0:			//default state (race)
 		//check if CAN variable 1 has changed, if so update the display
 		//check if menu button pressed, if so change state to 3
+		SetLEDs(BTN3RED|IND1OFF|IND2OFF);
+		delay_ms(1000);
+		State = 1;
 		break;
 
 	case 1:			//Display 2 with descriptions
 		//check if CAN variables 1 or 2 have changes, if so update the display
 		//check if menu button pressed, if so change state to 3
+		SetLEDs(BTN3GREEN|BTN2RED|BTN1GREEN|BTN0RED|BTN4GREEN|IND1YELLOW|IND2GREEN);
+		delay_ms(1000);
+		State = 2;
 		break;
 
 	case 2:			//Display 4 without descriptions
 		//check if any CAN variables have changed, if so update display
 		//check if menu button is pressed, if so change state to 3
+		SetLEDs(BTN3RED|BTN2RED|BTN1RED|BTN0GREEN|BTN4GREEN|IND1RED|IND2YELLOW);
+		delay_ms(1000);
+		State = 0;
 		break;
 
 	case 3:			//Main Menu

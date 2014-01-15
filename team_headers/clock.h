@@ -12,10 +12,10 @@ void ClockSetup();
 void HeartBeat();
 
 //todo USER: define clock
-#define CLOCK_PERIOD 500000 //uS //so half second
+#define CLOCK_PERIOD 10000 //uS //so 10 ms
 
-#define HEARTBEAT_TICKS		2	//1hz
-#define DATAOUT_TICKS		1	//2hz
+#define HEARTBEAT_TICKS		100	//1hz
+#define DATAOUT_TICKS		50	//2hz
 
 //todo USER: CLOCK_TICKS_CLEAR should have the same number of zeros as clock_struct has elements (as seen below)
 #define CLOCK_TICKS_CLEAR	{0,0}

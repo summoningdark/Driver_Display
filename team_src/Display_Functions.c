@@ -13,6 +13,7 @@
 #define int16_t int
 
 //function prototypes
+void Buttons();
 void SetLEDs(uint16_t LEDword);
 unsigned int GetButtonPress();
 int GetMenuSelection(const unsigned char List[][20]);
@@ -25,6 +26,104 @@ void SetLCDEN(int s);					//this function should set whatever pin is used for LC
 void LCDdelay();						//a delay of at least 500ns
 void delay_ms(uint16_t ms);				//function to delay ms milliseconds
 void SetLCDControlPort(uint8_t Cmd);	//this function should set whatever pins are used for the LCD control pins to outputs and set the values as follows:
+
+void Buttons()
+{
+		//do button debounce and reading
+		if(GpioDataRegs.GPBDAT.bit.GPIO33 == 0)		//check leftmost button
+			ButtonCounter[0]++;
+		else
+			ButtonCounter[0] = 0;
+
+		if(GpioDataRegs.GPBDAT.bit.GPIO32 == 0)		//check second
+			ButtonCounter[1]++;
+		else
+			ButtonCounter[1] = 0;
+
+		if(GpioDataRegs.GPADAT.bit.GPIO22 == 0)		//check third
+			ButtonCounter[2]++;
+		else
+			ButtonCounter[2] = 0;
+
+		if(GpioDataRegs.GPADAT.bit.GPIO24 == 0)		//check fourth
+			ButtonCounter[3]++;
+		else
+			ButtonCounter[3] = 0;
+
+		if(GpioDataRegs.GPADAT.bit.GPIO21 == 0)		//check rightmost button
+			ButtonCounter[4]++;
+		else
+			ButtonCounter[4] = 0;
+
+		//update button status
+		if (ButtonCounter[0] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0001; else ButtonStatus &=0x001E;
+		if (ButtonCounter[1] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0002; else ButtonStatus &=0x001D;
+		if (ButtonCounter[2] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0004; else ButtonStatus &=0x001B;
+		if (ButtonCounter[3] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0008; else ButtonStatus &=0x0017;
+		if (ButtonCounter[4] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0010; else ButtonStatus &=0x000F;
+
+		//update button press queue
+		if ((ButtonCounter[0] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[0] > BUTTON_HOLD_TICKS))
+		{
+			if(ButtonPress.Full == 0)																	//don't add press if queue is full
+			{
+				ButtonPress.Queue[ButtonPress.Next] = 0x0001;											//flag button press
+				ButtonPress.Empty = 0;																	//just added cannot be empty
+				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
+				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
+				if(ButtonCounter[0] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[0] -= BUTTON_REPETE_TICKS;	//reset repete counter
+			}
+		}
+
+		if ((ButtonCounter[1] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[1] > BUTTON_HOLD_TICKS))
+		{
+			if(ButtonPress.Full == 0)																	//don't add press if queue is full
+			{
+				ButtonPress.Queue[ButtonPress.Next] = 0x0002;											//flag button press
+				ButtonPress.Empty = 0;																	//just added cannot be empty
+				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
+				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
+				if(ButtonCounter[1] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[1] -= BUTTON_REPETE_TICKS;	//reset repete counter
+			}
+		}
+
+		if ((ButtonCounter[2] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[2] > BUTTON_HOLD_TICKS))
+		{
+			if(ButtonPress.Full == 0)																	//don't add press if queue is full
+			{
+				ButtonPress.Queue[ButtonPress.Next] = 0x0004;											//flag button press
+				ButtonPress.Empty = 0;																	//just added cannot be empty
+				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
+				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
+				if(ButtonCounter[2] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[2] -= BUTTON_REPETE_TICKS;	//reset repete counter
+			}
+		}
+
+		if ((ButtonCounter[3] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[3] > BUTTON_HOLD_TICKS))
+		{
+			if(ButtonPress.Full == 0)																	//don't add press if queue is full
+			{
+				ButtonPress.Queue[ButtonPress.Next] = 0x0008;											//flag button press
+				ButtonPress.Empty = 0;																	//just added cannot be empty
+				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
+				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
+				if(ButtonCounter[3] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[3] -= BUTTON_REPETE_TICKS;	//reset repete counter
+			}
+		}
+
+		if ((ButtonCounter[4] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[4] > BUTTON_HOLD_TICKS))
+		{
+			if(ButtonPress.Full == 0)																	//don't add press if queue is full
+			{
+				ButtonPress.Queue[ButtonPress.Next] = 0x0010;											//flag button press
+				ButtonPress.Empty = 0;																	//just added cannot be empty
+				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
+				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
+				if(ButtonCounter[4] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[4] -= BUTTON_REPETE_TICKS;	//reset repete counter
+			}
+		}
+
+}
 
 void SetLEDs(uint16_t LEDword)
 {

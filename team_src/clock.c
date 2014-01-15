@@ -61,6 +61,8 @@ __interrupt void INT13_ISR(void)     // INT13 or CPU-Timer1
 		Clock_Ticks.HeartBeat = 0;
 	}
 
+	Buttons();
+
 	ReloadCpuTimer1();
 	StartCpuTimer1();
 

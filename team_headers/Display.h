@@ -25,16 +25,16 @@
 //LED defines used as:  XXX[color] | XXX[color] ...
 //LED word [15:0] = Btn0[0],Btn4[0],Btn3[1],Btn2[1],Btn1[0],Btn4[1],Btn0[1],Btn1[1],Btn2[0],Yellow2,Green2,Red2,Btn3[0],Red1,Green1,Yellow1
 //bits for the different colors
-#define BTN0GREEN		0x8000
-#define BTN1GREEN		0x0800
-#define BTN2GREEN		0x0080
-#define BTN3GREEN		0x0008
-#define BTN4GREEN		0x4000
-#define BTN0RED			0x0200
-#define BTN1RED			0x0100
-#define BTN2RED			0x1000
-#define BTN3RED			0x2000
-#define BTN4RED			0x0400
+#define BTN0RED				0x8000
+#define BTN1RED				0x0800
+#define BTN2RED				0x0080
+#define BTN3RED				0x0008
+#define BTN4RED				0x4000
+#define BTN0GREEN			0x0200
+#define BTN1GREEN			0x0100
+#define BTN2GREEN			0x1000
+#define BTN3GREEN			0x2000
+#define BTN4GREEN			0x0400
 #define BTN_BACK_GREEN		BTN3GREEN
 #define BTN_UP_GREEN		BTN2GREEN
 #define BTN_DOWN_GREEN		BTN1GREEN
@@ -45,13 +45,16 @@
 #define BTN_DOWN_RED		BTN1RED
 #define BTN_SELECT_RED		BTN0RED
 #define BTN_MENU_RED		BTN4RED
-#define IND1RED			0x0004
-#define IND1YELLOW		0x0001
-#define IND1GREEN		0x0002
-#define IND2RED			0x0010
-#define IND2YELLOW		0x0040
-#define IND2GREEN		0x0020
+#define IND1OFF			0x0007
+#define IND1RED			0x0003
+#define IND1YELLOW		0x0006
+#define IND1GREEN		0x0005
+#define IND2OFF			0x0070
+#define IND2RED			0x0060
+#define IND2YELLOW		0x0030
+#define IND2GREEN		0x0050
 
+extern void Buttons();
 extern void SetLEDs(uint16_t LEDword);
 extern int GetMenuSelection(const unsigned char List[][20]);
 extern unsigned int GetButtonPress();
