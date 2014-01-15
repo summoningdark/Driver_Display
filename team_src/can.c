@@ -16,6 +16,8 @@ void CANSetup()
 	InitECanaGpio();
 	InitECana();
 
+	ClearMailBoxes();
+
 	ECanaShadow.CANMIM.all = 0;
 	ECanaShadow.CANMIL.all = 0;
 	ECanaShadow.CANGIM.all = 0;
@@ -90,7 +92,72 @@ void CANSetup()
     can_watch = StartStopWatch(SENDCAN_STOPWATCH);
 }
 
-
+void ClearMailBoxes()
+{
+    ECanaMboxes.MBOX0.MDH.all = 0;
+    ECanaMboxes.MBOX0.MDL.all = 0;
+    ECanaMboxes.MBOX1.MDH.all = 0;
+    ECanaMboxes.MBOX1.MDL.all = 0;
+    ECanaMboxes.MBOX2.MDH.all = 0;
+    ECanaMboxes.MBOX2.MDL.all = 0;
+    ECanaMboxes.MBOX3.MDH.all = 0;
+    ECanaMboxes.MBOX3.MDL.all = 0;
+    ECanaMboxes.MBOX4.MDH.all = 0;
+    ECanaMboxes.MBOX4.MDL.all = 0;
+    ECanaMboxes.MBOX5.MDH.all = 0;
+    ECanaMboxes.MBOX5.MDL.all = 0;
+    ECanaMboxes.MBOX6.MDH.all = 0;
+    ECanaMboxes.MBOX6.MDL.all = 0;
+    ECanaMboxes.MBOX7.MDH.all = 0;
+    ECanaMboxes.MBOX7.MDL.all = 0;
+    ECanaMboxes.MBOX8.MDH.all = 0;
+    ECanaMboxes.MBOX8.MDL.all = 0;
+    ECanaMboxes.MBOX9.MDH.all = 0;
+    ECanaMboxes.MBOX9.MDL.all = 0;
+    ECanaMboxes.MBOX10.MDH.all = 0;
+    ECanaMboxes.MBOX10.MDL.all = 0;
+    ECanaMboxes.MBOX11.MDH.all = 0;
+    ECanaMboxes.MBOX11.MDL.all = 0;
+    ECanaMboxes.MBOX12.MDH.all = 0;
+    ECanaMboxes.MBOX12.MDL.all = 0;
+    ECanaMboxes.MBOX13.MDH.all = 0;
+    ECanaMboxes.MBOX13.MDL.all = 0;
+    ECanaMboxes.MBOX14.MDH.all = 0;
+    ECanaMboxes.MBOX14.MDL.all = 0;
+    ECanaMboxes.MBOX15.MDH.all = 0;
+    ECanaMboxes.MBOX15.MDL.all = 0;
+    ECanaMboxes.MBOX16.MDH.all = 0;
+    ECanaMboxes.MBOX16.MDL.all = 0;
+    ECanaMboxes.MBOX17.MDH.all = 0;
+    ECanaMboxes.MBOX17.MDL.all = 0;
+    ECanaMboxes.MBOX18.MDH.all = 0;
+    ECanaMboxes.MBOX18.MDL.all = 0;
+    ECanaMboxes.MBOX19.MDH.all = 0;
+    ECanaMboxes.MBOX19.MDL.all = 0;
+    ECanaMboxes.MBOX20.MDH.all = 0;
+    ECanaMboxes.MBOX20.MDL.all = 0;
+    ECanaMboxes.MBOX21.MDH.all = 0;
+    ECanaMboxes.MBOX21.MDL.all = 0;
+    ECanaMboxes.MBOX22.MDH.all = 0;
+    ECanaMboxes.MBOX22.MDL.all = 0;
+    ECanaMboxes.MBOX23.MDH.all = 0;
+    ECanaMboxes.MBOX23.MDL.all = 0;
+    ECanaMboxes.MBOX24.MDH.all = 0;
+    ECanaMboxes.MBOX24.MDL.all = 0;
+    ECanaMboxes.MBOX25.MDH.all = 0;
+    ECanaMboxes.MBOX25.MDL.all = 0;
+    ECanaMboxes.MBOX26.MDH.all = 0;
+    ECanaMboxes.MBOX26.MDL.all = 0;
+    ECanaMboxes.MBOX27.MDH.all = 0;
+    ECanaMboxes.MBOX27.MDL.all = 0;
+    ECanaMboxes.MBOX28.MDH.all = 0;
+    ECanaMboxes.MBOX28.MDL.all = 0;
+    ECanaMboxes.MBOX29.MDH.all = 0;
+    ECanaMboxes.MBOX30.MDL.all = 0;
+    ECanaMboxes.MBOX30.MDH.all = 0;
+    ECanaMboxes.MBOX31.MDL.all = 0;
+    ECanaMboxes.MBOX31.MDH.all = 0;
+}
 
 char FillCAN(unsigned int Mbox)
 {

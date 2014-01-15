@@ -125,11 +125,9 @@ int GetMenuSelection(const unsigned char List[][20])
 			break;
 		case BTN_SELECT:
 				return (highlight+offset);
-			break;
 		case BTN_BACK:
 		case BTN_MENU:
 				return -1;
-			break;
 		default:
 			break;
 		}

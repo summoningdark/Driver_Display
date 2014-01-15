@@ -30,6 +30,7 @@ extern void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t 
 
 //access to fonts
 extern const uint8_t Font[];
+extern const uint8_t FontLarge[];
 
 
 

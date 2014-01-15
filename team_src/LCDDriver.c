@@ -127,7 +127,8 @@ uint8_t aux_font=0;	//which font to use 0=default, 1=aux
 
 
 //this include file stores all the relevant font data.
-#include "font.h"			  			  	  			  
+#include "font.h"
+#include "aux_font.h"
 
 //===============================================================these functions are updated=========================================================================
 void LCDSplash(uint16_t ms)

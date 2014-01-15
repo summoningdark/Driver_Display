@@ -147,5 +147,4 @@ void SensorCovDeInit()
 	StopStopWatch(conv_watch);
 	CLEARLED0();
 	CLEARLED1();
-	CLEAR12V();
 }
