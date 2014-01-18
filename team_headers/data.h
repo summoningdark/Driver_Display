@@ -8,6 +8,43 @@
 #ifndef DATA_H_
 #define DATA_H_
 
+typedef long long int64;
+
+//this union is to make extracting arbitrary variable data out of a CAN message easy
+//first the data bytes from the CAN message are placed in a variable with this union type
+//then the union is shifted using its uint64 representation to bring the correct data bits to the right justified position
+//you can then access the data as whatever type is appropriate
+typedef union
+{
+	int16	I16;
+	Uint16	U16;
+	int32	I32;
+	Uint32	U32;
+	float32	F32;
+	int64	I64;
+	Uint64	U64;
+	float64	F64;
+} CAN_DATA_u;
+
+//this structure holds a CAN variable. it includes the CAN ID the variable lives on, a type code to tell how
+//to interpret the bits, and an offset to the first bit(offset is measured in bits from the LSB of CAN data byte 0).
+//ie. CAN data bytes data[0] .. data[8] are assumed LSB first.
+typedef struct CAN_VAR
+{
+	Uint16 SID;
+	Uint16 TypeCode;
+	Uint16 Offset;
+	Uint16 New;
+	CAN_DATA_u data;
+} can_variable_struct;
+
+//this struct is fort the const array in memory that holds our CAN variable data, same as a CAN_VAR but without the data
+typedef struct CAN_VAR_LIST
+{
+	Uint16 SID;
+	Uint16 TypeCode;
+	Uint16 Offset;
+} can_variable_list_struct;
 
 typedef struct DATA
 {
@@ -17,8 +54,6 @@ typedef struct DATA
 
 //Size of the button press queue
 #define BUTTON_QUEUE_SIZE 10
-//number of ticks (CPU-Timer0 interrupts, so 100 uS/tick) before a switch press is considered valid 100 = .01s
-#define BUTTON_DEBOUNCE_TICKS 100
 //number of ticks before a button is considered held (another press is registered) 5000 = .5s
 #define BUTTON_HOLD_TICKS 5000
 //number of ticks before a held button repetes a press. 3000 = .3s

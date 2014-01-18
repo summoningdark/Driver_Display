@@ -12,7 +12,10 @@
 #define uint16_t unsigned int
 #define int16_t int
 
+extern
+
 //function prototypes
+void LCD_bl(int i);
 void Buttons();
 void SetLEDs(uint16_t LEDword);
 unsigned int GetButtonPress();
@@ -26,100 +29,131 @@ void SetLCDEN(int s);					//this function should set whatever pin is used for LC
 void LCDdelay();						//a delay of at least 500ns
 void delay_ms(uint16_t ms);				//function to delay ms milliseconds
 void SetLCDControlPort(uint8_t Cmd);	//this function should set whatever pins are used for the LCD control pins to outputs and set the values as follows:
+void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar);	//sets the CAN system to monitor CANvar using slot N
+void PrintCANvariable(uint8_t N,uint8_t x, uint8_t y);		//prints the value in slot N to the LCD
 
+
+void LCD_bl(int i)
+{
+	   GpioDataRegs.GPADAT.bit.GPIO16 = i;          // output
+}
 void Buttons()
 {
 		//do button debounce and reading
 		if(GpioDataRegs.GPBDAT.bit.GPIO33 == 0)		//check leftmost button
+		{
+			ButtonStatus |= 0x0001;
 			ButtonCounter[0]++;
+		}
 		else
+		{
+			ButtonStatus &=0xFF1E;
 			ButtonCounter[0] = 0;
+		}
 
 		if(GpioDataRegs.GPBDAT.bit.GPIO32 == 0)		//check second
+		{
+			ButtonStatus |= 0x0002;
 			ButtonCounter[1]++;
+		}
 		else
+		{
+			ButtonStatus &=0xFF1D;
 			ButtonCounter[1] = 0;
+		}
 
 		if(GpioDataRegs.GPADAT.bit.GPIO22 == 0)		//check third
+		{
+			ButtonStatus |= 0x0004;
 			ButtonCounter[2]++;
+		}
 		else
+		{
+			ButtonStatus &=0xFF1B;
 			ButtonCounter[2] = 0;
+		}
 
 		if(GpioDataRegs.GPADAT.bit.GPIO24 == 0)		//check fourth
+		{
+			ButtonStatus |= 0x0008;
 			ButtonCounter[3]++;
+		}
 		else
+		{
+			ButtonStatus &=0xFF17;
 			ButtonCounter[3] = 0;
+		}
 
 		if(GpioDataRegs.GPADAT.bit.GPIO21 == 0)		//check rightmost button
+		{
+			ButtonStatus |= 0x0010;
 			ButtonCounter[4]++;
+		}
 		else
+		{
+			ButtonStatus &=0xFF0F;
 			ButtonCounter[4] = 0;
+		}
 
-		//update button status
-		if (ButtonCounter[0] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0001; else ButtonStatus &=0x001E;
-		if (ButtonCounter[1] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0002; else ButtonStatus &=0x001D;
-		if (ButtonCounter[2] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0004; else ButtonStatus &=0x001B;
-		if (ButtonCounter[3] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0008; else ButtonStatus &=0x0017;
-		if (ButtonCounter[4] >= BUTTON_DEBOUNCE_TICKS) ButtonStatus |= 0x0010; else ButtonStatus &=0x000F;
 
 		//update button press queue
-		if ((ButtonCounter[0] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[0] > BUTTON_HOLD_TICKS))
+		if ((ButtonCounter[0] == 1) || (ButtonCounter[0] > BUTTON_HOLD_TICKS))
 		{
 			if(ButtonPress.Full == 0)																	//don't add press if queue is full
 			{
-				ButtonPress.Queue[ButtonPress.Next] = 0x0001;											//flag button press
+				ButtonPress.Queue[ButtonPress.Next] = BTN_BACK;											//flag button press
 				ButtonPress.Empty = 0;																	//just added cannot be empty
 				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
 				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
-				if(ButtonCounter[0] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[0] -= BUTTON_REPETE_TICKS;	//reset repete counter
+				if(ButtonCounter[0] > 1) ButtonCounter[0] -= BUTTON_REPETE_TICKS;	//reset repete counter
 			}
 		}
 
-		if ((ButtonCounter[1] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[1] > BUTTON_HOLD_TICKS))
+		if ((ButtonCounter[1] == 1) || (ButtonCounter[1] > BUTTON_HOLD_TICKS))
 		{
 			if(ButtonPress.Full == 0)																	//don't add press if queue is full
 			{
-				ButtonPress.Queue[ButtonPress.Next] = 0x0002;											//flag button press
+				ButtonPress.Queue[ButtonPress.Next] = BTN_UP;											//flag button press
 				ButtonPress.Empty = 0;																	//just added cannot be empty
 				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
 				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
-				if(ButtonCounter[1] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[1] -= BUTTON_REPETE_TICKS;	//reset repete counter
+				if(ButtonCounter[1] > 1) ButtonCounter[1] -= BUTTON_REPETE_TICKS;	//reset repete counter
 			}
 		}
 
-		if ((ButtonCounter[2] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[2] > BUTTON_HOLD_TICKS))
+		if ((ButtonCounter[2] == 1) || (ButtonCounter[2] > BUTTON_HOLD_TICKS))
 		{
 			if(ButtonPress.Full == 0)																	//don't add press if queue is full
 			{
-				ButtonPress.Queue[ButtonPress.Next] = 0x0004;											//flag button press
+				ButtonPress.Queue[ButtonPress.Next] = BTN_DOWN;											//flag button press
 				ButtonPress.Empty = 0;																	//just added cannot be empty
 				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
 				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
-				if(ButtonCounter[2] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[2] -= BUTTON_REPETE_TICKS;	//reset repete counter
+				if(ButtonCounter[2] > 1) ButtonCounter[2] -= BUTTON_REPETE_TICKS;	//reset repete counter
 			}
 		}
 
-		if ((ButtonCounter[3] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[3] > BUTTON_HOLD_TICKS))
+		if ((ButtonCounter[3] == 1) || (ButtonCounter[3] > BUTTON_HOLD_TICKS))
 		{
 			if(ButtonPress.Full == 0)																	//don't add press if queue is full
 			{
-				ButtonPress.Queue[ButtonPress.Next] = 0x0008;											//flag button press
+				ButtonPress.Queue[ButtonPress.Next] = BTN_SELECT;										//flag button press
 				ButtonPress.Empty = 0;																	//just added cannot be empty
 				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
 				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
-				if(ButtonCounter[3] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[3] -= BUTTON_REPETE_TICKS;	//reset repete counter
+				if(ButtonCounter[3] > 1) ButtonCounter[3] -= BUTTON_REPETE_TICKS;	//reset repete counter
 			}
 		}
 
-		if ((ButtonCounter[4] == BUTTON_DEBOUNCE_TICKS) || (ButtonCounter[4] > BUTTON_HOLD_TICKS))
+		if ((ButtonCounter[4] == 1) || (ButtonCounter[4] > BUTTON_HOLD_TICKS))
 		{
 			if(ButtonPress.Full == 0)																	//don't add press if queue is full
 			{
-				ButtonPress.Queue[ButtonPress.Next] = 0x0010;											//flag button press
+				ButtonPress.Queue[ButtonPress.Next] = BTN_MENU;											//flag button press
 				ButtonPress.Empty = 0;																	//just added cannot be empty
 				if(++ButtonPress.Next == BUTTON_QUEUE_SIZE) ButtonPress.Next = 0;						//increment end pointer with wrap
 				if(ButtonPress.Next == ButtonPress.Current) ButtonPress.Full = 1;						//flag full if necessary
-				if(ButtonCounter[4] > BUTTON_DEBOUNCE_TICKS) ButtonCounter[4] -= BUTTON_REPETE_TICKS;	//reset repete counter
+				if(ButtonCounter[4] > 1) ButtonCounter[4] -= BUTTON_REPETE_TICKS;	//reset repete counter
 			}
 		}
 
@@ -284,29 +318,34 @@ void ButtonGpioInit()
 	//Btn0				= GPIO24
 	//Btn4 (rightmost)	= GPIO21	(also MCN button)
 	EALLOW;
-	GpioCtrlRegs.GPBMUX1.bit.GPIO33 = 0;         // GPIO
-    GpioCtrlRegs.GPBDIR.bit.GPIO33 = 0;          // input
-    GpioCtrlRegs.GPBQSEL1.bit.GPIO33 = 0;        //Synch to SYSCLKOUT only
-    GpioCtrlRegs.GPBPUD.bit.GPIO33 = 0;          //enable pull up
+
+	GpioCtrlRegs.GPBCTRL.bit.QUALPRD0 = 0xFF;	// use max sampling period for GPIO 32 .. 39
+
+	GpioCtrlRegs.GPBMUX1.bit.GPIO33 = 0;        // GPIO
+    GpioCtrlRegs.GPBDIR.bit.GPIO33 = 0;         // input
+    GpioCtrlRegs.GPBQSEL1.bit.GPIO33 = 2;       //Synch to 6 sampling periods
+    GpioCtrlRegs.GPBPUD.bit.GPIO33 = 0;         //enable pull up
 
     GpioCtrlRegs.GPBMUX1.bit.GPIO32 = 0;         // GPIO
     GpioCtrlRegs.GPBDIR.bit.GPIO32 = 0;          // input
-    GpioCtrlRegs.GPBQSEL1.bit.GPIO32 = 0;        //Synch to SYSCLKOUT only
+    GpioCtrlRegs.GPBQSEL1.bit.GPIO32 = 2;        //Synch to 6 sampling periods
     GpioCtrlRegs.GPBPUD.bit.GPIO32 = 0;          //enable pull up
+
+    GpioCtrlRegs.GPACTRL.bit.QUALPRD2 - 0xFF;	 //use max sampling period for GPIO 16 .. 24
 
 	GpioCtrlRegs.GPAMUX2.bit.GPIO22 = 0;         // GPIO
     GpioCtrlRegs.GPADIR.bit.GPIO22 = 0;          // input
-    GpioCtrlRegs.GPAQSEL2.bit.GPIO22 = 0;        //Synch to SYSCLKOUT only
+    GpioCtrlRegs.GPAQSEL2.bit.GPIO22 = 2;        //Synch to 6 sampling periods
     GpioCtrlRegs.GPAPUD.bit.GPIO22 = 0;          //enable pull up
 
 	GpioCtrlRegs.GPAMUX2.bit.GPIO24 = 0;         // GPIO
     GpioCtrlRegs.GPADIR.bit.GPIO24 = 0;          // input
-    GpioCtrlRegs.GPAQSEL2.bit.GPIO24 = 0;        //Synch to SYSCLKOUT only
+    GpioCtrlRegs.GPAQSEL2.bit.GPIO24 = 2;        //Synch to 6 sampling periods
     GpioCtrlRegs.GPAPUD.bit.GPIO24 = 0;          //enable pull up
 
 	GpioCtrlRegs.GPAMUX2.bit.GPIO21 = 0;         // GPIO
     GpioCtrlRegs.GPADIR.bit.GPIO21 = 0;          // input
-    GpioCtrlRegs.GPAQSEL2.bit.GPIO21 = 0;        //Synch to SYSCLKOUT only
+    GpioCtrlRegs.GPAQSEL2.bit.GPIO21 = 2;        //Synch to 6 sampling periods
     GpioCtrlRegs.GPAPUD.bit.GPIO21 = 0;          //enable pull up
     EDIS;
 }
@@ -493,4 +532,91 @@ void delay_ms(uint16_t ms)
 	int i;
 	for(i=0;i<ms;i++)
 		DELAY_US(1000);
+}
+
+void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar)
+{
+	struct ECAN_REGS ECanaShadow;	//shadow structure for modifying CAN registers
+
+	//change mailbox settings and
+	//copy information from CANvar to  appropriate CANvars
+	switch(N)
+	{
+	case 1:	//update variable 1
+		EALLOW;
+		//set up mailbox(2)
+		ECanaShadow.CANME.all = ECanaRegs.CANME.all;		//get current CAN registers
+
+		ECanaShadow.CANME.bit.ME2 = 0;
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;		//disable mailbox so we can change the ID
+		ECanaMboxes.MBOX2.MSGID.bit.STDMSGID = CANvar.SID;	//change the mailbox ID
+
+		CANvars[0].SID = CANvar.SID;						//update CANvars to reflect new ID
+		CANvars[0].TypeCode = CANvar.TypeCode;				//update CANvars to reflect new type
+		CANvars[0].Offset = CANvar.Offset;					//update CANvars to reflect new offset
+		CANvars[0].New = 0;									//mark as not new, the next can interrupt will set it
+
+		ECanaShadow.CANME.bit.ME2 = 1;						//enable mailbox
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+		EDIS;
+	break;
+	case 2:
+		EALLOW;
+		//set up mailbox(3)
+		ECanaShadow.CANME.all = ECanaRegs.CANME.all;		//get current CAN registers
+
+		ECanaShadow.CANME.bit.ME3 = 0;
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;		//disable mailbox so we can change the ID
+		ECanaMboxes.MBOX3.MSGID.bit.STDMSGID = CANvar.SID;	//change the mailbox ID
+
+		CANvars[1].SID = CANvar.SID;						//update CANvars to reflect new ID
+		CANvars[1].TypeCode = CANvar.TypeCode;				//update CANvars to reflect new type
+		CANvars[1].Offset = CANvar.Offset;					//update CANvars to reflect new offset
+		CANvars[1].New = 0;									//mark as not new, the next can interrupt will set it
+
+		ECanaShadow.CANME.bit.ME3 = 1;						//enable mailbox
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+		EDIS;
+	break;
+	case 3:
+		EALLOW;
+		//set up mailbox(4)
+		ECanaShadow.CANME.all = ECanaRegs.CANME.all;		//get current CAN registers
+
+		ECanaShadow.CANME.bit.ME4 = 0;
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;		//disable mailbox so we can change the ID
+		ECanaMboxes.MBOX4.MSGID.bit.STDMSGID = CANvar.SID;	//change the mailbox ID
+
+		CANvars[2].SID = CANvar.SID;						//update CANvars to reflect new ID
+		CANvars[2].TypeCode = CANvar.TypeCode;				//update CANvars to reflect new type
+		CANvars[2].Offset = CANvar.Offset;					//update CANvars to reflect new offset
+		CANvars[2].New = 0;									//mark as not new, the next can interrupt will set it
+
+		ECanaShadow.CANME.bit.ME4 = 1;						//enable mailbox
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+		EDIS;
+	break;
+	default:
+		EALLOW;
+		//set up mailbox(5)
+		ECanaShadow.CANME.all = ECanaRegs.CANME.all;		//get current CAN registers
+
+		ECanaShadow.CANME.bit.ME5 = 0;
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;		//disable mailbox so we can change the ID
+		ECanaMboxes.MBOX5.MSGID.bit.STDMSGID = CANvar.SID;	//change the mailbox ID
+
+		CANvars[3].SID = CANvar.SID;						//update CANvars to reflect new ID
+		CANvars[3].TypeCode = CANvar.TypeCode;				//update CANvars to reflect new type
+		CANvars[3].Offset = CANvar.Offset;					//update CANvars to reflect new offset
+		CANvars[3].New = 0;									//mark as not new, the next can interrupt will set it
+
+		ECanaShadow.CANME.bit.ME5 = 1;						//enable mailbox
+		ECanaRegs.CANME.all = ECanaShadow.CANME.all;
+		EDIS;
+	}
+}
+
+void PrintCANvariable(uint8_t N,uint8_t x, uint8_t y)
+{
+
 }

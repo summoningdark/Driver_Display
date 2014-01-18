@@ -7,6 +7,8 @@
 
 #include "all.h"
 #include "menus.h"
+extern const unsigned char CANdbcNames[][20];
+extern const can_variable_list_struct CANdbc[];
 
 ops_struct ops_temp;
 data_struct data_temp;
@@ -73,56 +75,162 @@ void LatchStruct()
 
 void SensorCovMeasure()
 {
-	static int State=0;
+	static int State=RACE_MODE, LastState=RACE_MODE,DisplayState=RACE_MODE,d2N1=0,d2N2=1,d2S=0;
 	StopWatchRestart(conv_watch);
+	int tmp;
+	can_variable_list_struct tmpCANvar;
 
 	switch(State)
 	{
-	case 0:			//default state (race)
-		//check if CAN variable 1 has changed, if so update the display
-		//check if menu button pressed, if so change state to 3
-		SetLEDs(BTN3RED|IND1OFF|IND2OFF);
-		delay_ms(1000);
-		State = 1;
-		break;
+	case -1:				//main menu
+		tmp = GetMenuSelection(MainMenuText);	//get menu selection
+		if (tmp == -1)							//check if the user canceled
+			State = LastState;
+		else
+			State = tmp;
 
-	case 1:			//Display 2 with descriptions
-		//check if CAN variables 1 or 2 have changes, if so update the display
-		//check if menu button pressed, if so change state to 3
-		SetLEDs(BTN3GREEN|BTN2RED|BTN1GREEN|BTN0RED|BTN4GREEN|IND1YELLOW|IND2GREEN);
-		delay_ms(1000);
-		State = 2;
-		break;
+		LastState = -1;							//update LastState
+		clear_screen(0);						//give the next state a clear screen to work with
+	break;
 
-	case 2:			//Display 4 without descriptions
-		//check if any CAN variables have changed, if so update display
-		//check if menu button is pressed, if so change state to 3
-		SetLEDs(BTN3RED|BTN2RED|BTN1RED|BTN0GREEN|BTN4GREEN|IND1RED|IND2YELLOW);
-		delay_ms(1000);
-		State = 0;
-		break;
+	case RACE_MODE:			//default state (race)
+		if(CANvars[0].New == 1 || LastState == -1)	//if new can data or we just came off of the main menu
+			PrintCANvariable(1,0,0);				//update the display
 
-	case 3:			//Main Menu
-		switch(GetMenuSelection(MainMenuText))
+		if(GetButtonPress() == BTN_MENU)
+			State = -1;
+		else
+			State = RACE_MODE;
+
+		DisplayState=RACE_MODE;
+		LastState = RACE_MODE;
+	break;
+
+	case DISPLAY2:			//Display 2 with descriptions
+
+		if(CANvars[d2N1].New == 1 || LastState == -1)		//update first displayed variable
 		{
-
+			//print first variable label, print in inverse if d2S == 0
+			//print first variable value
 		}
-		break;
 
-	case 4:			//Select Variable 1
-		break;
+		if(CANvars[d2N2].New == 1 || LastState == -1)		//update second displayed variable
+		{
+			//print second variable label, print in inverse if d2S == 1
+			//print second variable value
+		}
 
-	case 5:			//Select Variable 2
-		break;
 
-	case 6:			//Select Variable 3
+		State = DISPLAY2;			//default to same state
+		switch(GetButtonPress())
+		{
+		case BTN_MENU:
+			State = -1;
 		break;
+		case BTN_UP:			//these buttons select which displayed variable is highlighted. in a list of two up and down do the same thing
+		case BTN_DOWN:
+			if (d2S == 0) d2S = 1; else d2S = 0;
+		break;
+		case BTN_SELECT:		//this button increments the index of the highlighted variable
+			if(d2S == 0)
+			{
+				if (++d2N1 == 4) d2N1 = 0;
+			}
+			else
+			{
+				if (++d2N2 == 4) d2N2 = 0;
+			}
+		break;
+		case BTN_BACK:			//this button decrements the index of the highlighted variable
+			if(d2S == 0)
+			{
+				if (--d2N1 == -1) d2N1 = 3;
+			}
+			else
+			{
+				if (--d2N2 == -1) d2N2 = 3;
+			}
+		break;
+		}
+		DisplayState=DISPLAY2;
+		LastState = DISPLAY2;
+	break;
 
-	case 7:			//Select Variable 4
-		break;
+	case DISPLAY4:			//Display 4 without descriptions
+
+
+		if(GetButtonPress() == BTN_MENU)
+			State = -1;
+		else
+			State = DISPLAY4;
+
+		DisplayState=DISPLAY4;
+		LastState = DISPLAY4;
+	break;
+
+	case CNGVAR1:		//Select Variable 1
+		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
+
+		if(tmp == -1)
+		{
+			State = -1;
+		}
+		else
+		{
+			tmpCANvar = CANdbc[tmp];
+			SetCANmonitor(1,  tmpCANvar);
+		}
+		State = DisplayState;
+		LastState = CNGVAR1;
+	break;
+
+	case CNGVAR2:			//Select Variable 2
+		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
+
+		if(tmp == -1)
+		{
+			State = -1;
+		}
+		else
+		{
+			tmpCANvar = CANdbc[tmp];
+			SetCANmonitor(2,  tmpCANvar);
+		}
+		State = DisplayState;
+		LastState = CNGVAR2;	break;
+
+	case CNGVAR3:			//Select Variable 3
+		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
+
+		if(tmp == -1)
+		{
+			State = -1;
+		}
+		else
+		{
+			tmpCANvar = CANdbc[tmp];
+			SetCANmonitor(3,  tmpCANvar);
+		}
+		State = DisplayState;
+		LastState = CNGVAR3;	break;
+
+	case CNGVAR4:			//Select Variable 4
+		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
+
+		if(tmp == -1)
+		{
+			State = -1;
+		}
+		else
+		{
+			tmpCANvar = CANdbc[tmp];
+			SetCANmonitor(4,  tmpCANvar);
+		}
+		State = DisplayState;
+		LastState = CNGVAR4;	break;
 
 	default:
-		State = 0;
+		State = RACE_MODE;
 	}
 }
 

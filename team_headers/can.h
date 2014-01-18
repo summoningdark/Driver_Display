@@ -32,16 +32,14 @@ void ClearMailBoxes();
 //todo USER: DEFINE IDs and mailboxes for output
 #define COMMAND_ID 		0x1
 #define COMMAND_BOX 	0
+#define VARIABLE1_BOX	2
+#define VARIABLE2_BOX	3
+#define VARIABLE3_BOX	4
+#define VARIABLE4_BOX	5
 
 #define HEARTBEAT_ID 	0x0
 #define HEARTBEAT_BOX 	1
 
-#define ADC_ID 			0x2
-#define ADC_BOX 		2
-#define ADC_TRS			TRS2
-
-#define GP_BUTTON_ID 	0x3
-#define GP_BUTTON_BOX 	3
-#define GP_BUTTON_TRS	TRS3
+extern can_variable_struct CANvars[4];
 
 #endif /* CAN_H_ */

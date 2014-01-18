@@ -4,6 +4,7 @@
  *  Created on: Jan 13, 2014
  *      Author: jennifer
  */
+#include "data.h"
 
 #ifndef DISPLAY_H_
 #define DISPLAY_H_
@@ -54,6 +55,7 @@
 #define IND2YELLOW		0x0030
 #define IND2GREEN		0x0050
 
+extern void LCD_bl(int i);
 extern void Buttons();
 extern void SetLEDs(uint16_t LEDword);
 extern int GetMenuSelection(const unsigned char List[][20]);
@@ -67,5 +69,7 @@ extern void SetLCDEN(int s);
 extern void LCDdelay();
 extern void delay_ms(uint16_t ms);
 extern void SetLCDControlPort(uint8_t Cmd);
+extern void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar);
+extern void PrintCANvariable(uint8_t N, uint8_t x, uint8_t y);
 
 #endif /* DISPLAY_H_ */
