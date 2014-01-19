@@ -55,9 +55,9 @@ typedef struct DATA
 //Size of the button press queue
 #define BUTTON_QUEUE_SIZE 10
 //number of ticks before a button is considered held (another press is registered) 5000 = .5s
-#define BUTTON_HOLD_TICKS 5000
+#define BUTTON_HOLD_TICKS 50
 //number of ticks before a held button repetes a press. 3000 = .3s
-#define BUTTON_REPETE_TICKS 3000
+#define BUTTON_REPETE_TICKS 30
 
 typedef struct BUTTONQUEUE
 {

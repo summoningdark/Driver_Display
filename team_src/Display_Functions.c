@@ -6,6 +6,7 @@
  */
 
 #include "all.h"
+#include <stdio.h>
 
 #define uint8_t unsigned int
 #define int8_t int
@@ -35,7 +36,7 @@ void PrintCANvariable(uint8_t N,uint8_t x, uint8_t y);		//prints the value in sl
 
 void LCD_bl(int i)
 {
-	   GpioDataRegs.GPADAT.bit.GPIO16 = i;          // output
+	   if (i) GpioDataRegs.GPASET.bit.GPIO16 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO16 = 1;          // output
 }
 void Buttons()
 {
@@ -161,30 +162,36 @@ void Buttons()
 
 void SetLEDs(uint16_t LEDword)
 {
+	static unsigned int last;
 	int i;
 	unsigned int d;
 
-	d = LEDword;
-	//pull LEDclk low
-	GpioDataRegs.GPADAT.bit.GPIO18 = 0;
-	//pull LEDclear low, wait, then drive LEDclear high
-	GpioDataRegs.GPADAT.bit.GPIO17 = 0;
-	DELAY_US(1);
-	GpioDataRegs.GPADAT.bit.GPIO17 = 1;
-
-	for(i=0;i<16;i++)
+	if(LEDword != last)
 	{
-		GpioDataRegs.GPADAT.bit.GPIO8 = d & 0x0001;		//place data on pin
-		GpioDataRegs.GPADAT.bit.GPIO18 = 1;				//clk high
-		DELAY_US(1);									//pause
-		GpioDataRegs.GPADAT.bit.GPIO18 = 0;				//clk low
-		DELAY_US(1);									//pause
-		d = d >> 1;										//shift data
+		d = LEDword;
+		last = LEDword;
+		//pull LEDclk low
+		GpioDataRegs.GPACLEAR.bit.GPIO18 = 1;
+		//pull LEDclear low, wait, then drive LEDclear high
+		GpioDataRegs.GPACLEAR.bit.GPIO17 = 1;
+		DELAY_US(1);
+		GpioDataRegs.GPASET.bit.GPIO17 = 1;
+
+		for(i=0;i<16;i++)
+		{
+			if (d & 0x0001) GpioDataRegs.GPASET.bit.GPIO8 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO8 = 1;		//place data on pin
+			GpioDataRegs.GPASET.bit.GPIO18 = 1;				//clk high
+			DELAY_US(1);									//pause
+			GpioDataRegs.GPACLEAR.bit.GPIO18 = 1;			//clk low
+			DELAY_US(1);									//pause
+			d = d >> 1;										//shift data
+		}
 	}
 }
 
 int GetMenuSelection(const unsigned char List[][20])
 {
+	//todo make menu selection robust against menus shorter than NLINES
 	//these defines determine the size of the menu. NLINES is the number of line the menu consists of.
 #define NLINES 4
 
@@ -237,7 +244,7 @@ int GetMenuSelection(const unsigned char List[][20])
 			break;
 		case BTN_DOWN:
 				if(++highlight == NLINES)			//increment highlighted line, if it goes off the bottom,
-					if(++offset == max)				//increment the list offset, if it goes off the bottom,
+					if(++offset == (max-NLINES+1))	//increment the list offset, if it goes off the bottom,
 					{
 						offset = 0;					//offset to the beginning
 						highlight = 0;				//highlight the first row
@@ -460,14 +467,14 @@ void WriteLCDDataPort(uint8_t Data)
     EDIS;
 
     //now write the data to the pins
-    GpioDataRegs.GPADAT.bit.GPIO20 = Data & 0x0001;
-    GpioDataRegs.GPADAT.bit.GPIO14 = Data & 0x0002;
-    GpioDataRegs.GPADAT.bit.GPIO1 = Data & 0x0004;
-    GpioDataRegs.GPADAT.bit.GPIO2 = Data & 0x0008;
-    GpioDataRegs.GPADAT.bit.GPIO3 = Data & 0x00010;
-    GpioDataRegs.GPADAT.bit.GPIO10 = Data & 0x0020;
-    GpioDataRegs.GPBDAT.bit.GPIO40 = Data & 0x0040;
-    GpioDataRegs.GPADAT.bit.GPIO4 = Data & 0x0080;
+    if (Data & 0x0001) GpioDataRegs.GPASET.bit.GPIO20 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO20 = 1;
+    if (Data & 0x0002) GpioDataRegs.GPASET.bit.GPIO14 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO14 = 1;
+    if (Data & 0x0004) GpioDataRegs.GPASET.bit.GPIO1 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO1 = 1;
+    if (Data & 0x0008) GpioDataRegs.GPASET.bit.GPIO2 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO2 = 1;
+    if (Data & 0x00010) GpioDataRegs.GPASET.bit.GPIO3 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO3 = 1;
+    if (Data & 0x0020) GpioDataRegs.GPASET.bit.GPIO10 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO10 = 1;
+    if (Data & 0x0040) GpioDataRegs.GPBSET.bit.GPIO40 = 1; else GpioDataRegs.GPBCLEAR.bit.GPIO40 = 1;
+    if (Data & 0x0080) GpioDataRegs.GPASET.bit.GPIO4 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO4 = 1;
 }
 
 uint8_t ReadLCDDataPort()
@@ -507,11 +514,11 @@ void SetLCDControlPort(uint8_t Cmd)
 	//RW = GPIO7
 	//DI = GPIO41
 
-    GpioDataRegs.GPADAT.bit.GPIO5 = Cmd & 0x0080;
-    GpioDataRegs.GPADAT.bit.GPIO11 = Cmd & 0x0040;
-    GpioDataRegs.GPADAT.bit.GPIO6 = Cmd & 0x0020;
-    GpioDataRegs.GPADAT.bit.GPIO7 = Cmd & 0x0010;
-    GpioDataRegs.GPBDAT.bit.GPIO41 = Cmd & 0x00008;
+    if (Cmd & 0x0080) GpioDataRegs.GPASET.bit.GPIO5 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO5 = 1;
+    if (Cmd & 0x0040) GpioDataRegs.GPASET.bit.GPIO11 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO11 = 1;
+    if (Cmd & 0x0020) GpioDataRegs.GPASET.bit.GPIO6 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO6 = 1;
+    if (Cmd & 0x0010) GpioDataRegs.GPASET.bit.GPIO7 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO7 = 1;
+    if (Cmd & 0x0008) GpioDataRegs.GPBSET.bit.GPIO41 = 1; else GpioDataRegs.GPBCLEAR.bit.GPIO41 = 1;
 
 }
 
@@ -519,7 +526,7 @@ void SetLCDEN(int s)
 {
 	//mapping:
 	//EN = GPIO12
-	if (s) GpioDataRegs.GPADAT.bit.GPIO12 = 1; else GpioDataRegs.GPADAT.bit.GPIO12 = 0;
+	if (s) GpioDataRegs.GPASET.bit.GPIO12 = 1; else GpioDataRegs.GPACLEAR.bit.GPIO12 = 1;
 }
 
 void LCDdelay()
@@ -618,5 +625,11 @@ void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar)
 
 void PrintCANvariable(uint8_t N,uint8_t x, uint8_t y)
 {
-
+	//note disable interrupts before latching CANvars[n] to the temp CANvar
+	char text[20];
+	//set cursor to x,y
+	set_cursor(x,y);
+	//create string from variable
+	sprintf(text,"%d\n",10);
+	print_rstr((unsigned int*)text,0);
 }

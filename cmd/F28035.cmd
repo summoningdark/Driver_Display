@@ -75,8 +75,8 @@ PAGE 0:    /* Program Memory */
    OTP         : origin = 0x3D7800, length = 0x000400     /* on-chip OTP */
    BOOTLOADER  : origin = 0x3E8000, length = 0x002000     /* on-chip FLASH */
    FLASHG      : origin = 0x3EA000, length = 0x002000     /* on-chip FLASH */
-   FLASHF      : origin = 0x3EC000, length = 0x002000     /* on-chip FLASH */
-   FLASHE      : origin = 0x3EE000, length = 0x002000     /* on-chip FLASH */
+   FLASHF      : origin = 0x3EC000, length = 0x004000     /* on-chip FLASH */
+   //FLASHE      : origin = 0x3EE000, length = 0x002000     /* on-chip FLASH */
    FLASHD      : origin = 0x3F0000, length = 0x002000     /* on-chip FLASH */
    FLASHC      : origin = 0x3F2000, length = 0x002000     /* on-chip FLASH */
    FLASHA      : origin = 0x3F6000, length = 0x001F80     /* on-chip FLASH */
@@ -117,7 +117,7 @@ SECTIONS
    /* Allocate program areas: */
    .cinit              : > FLASHC      PAGE = 0
    .pinit              : > FLASHC,     PAGE = 0
-   .text               : > FLASHC      PAGE = 0
+   .text               : > FLASHF      PAGE = 0
 
 
    codestart           : > BEGIN       PAGE = 0
@@ -146,7 +146,7 @@ SECTIONS
 
    /* Initalized sections go in Flash */
    /* For SDFlash to program these, they must be allocated to page 0 */
-   .econst             : > FLASHE      PAGE = 0
+   .econst             : > FLASHG      PAGE = 0
    .switch             : > FLASHC      PAGE = 0
 
    /* Allocate IQ math areas: */

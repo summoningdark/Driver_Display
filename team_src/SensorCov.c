@@ -45,9 +45,12 @@ void SensorCovInit()
 
 	//config LED control pins
 	LEDGpio_init();
+	SetLEDs(IND1OFF | IND2OFF);
 
 	//LCD init
 	LCDinit();
+	LCDSplash(1000);
+	set_font(Font);
 
 	//CONFIG ADC
 	//adcinit();
@@ -75,7 +78,7 @@ void LatchStruct()
 
 void SensorCovMeasure()
 {
-	static int State=RACE_MODE, LastState=RACE_MODE,DisplayState=RACE_MODE,d2N1=0,d2N2=1,d2S=0;
+	static int State=RACE_MODE, LastState=-1,DisplayState=RACE_MODE,d2N1=0,d2N2=1,d2S=0;
 	StopWatchRestart(conv_watch);
 	int tmp;
 	can_variable_list_struct tmpCANvar;
@@ -94,8 +97,11 @@ void SensorCovMeasure()
 	break;
 
 	case RACE_MODE:			//default state (race)
-		if(CANvars[0].New == 1 || LastState == -1)	//if new can data or we just came off of the main menu
-			PrintCANvariable(1,0,0);				//update the display
+		if(CANvars[0].New == 1 || LastState == -1 || LastState == CNGVAR1|| LastState == CNGVAR2|| LastState == CNGVAR3|| LastState == CNGVAR4)	//if new can data or we just came off of the main menu
+		{
+			set_font(FontLarge);
+			PrintCANvariable(1,0,10);				//update the display
+		}
 
 		if(GetButtonPress() == BTN_MENU)
 			State = -1;
@@ -108,18 +114,19 @@ void SensorCovMeasure()
 
 	case DISPLAY2:			//Display 2 with descriptions
 
-		if(CANvars[d2N1].New == 1 || LastState == -1)		//update first displayed variable
+		if(CANvars[d2N1].New == 1 || LastState == -1 || LastState == CNGVAR1|| LastState == CNGVAR2|| LastState == CNGVAR3|| LastState == CNGVAR4)		//update first displayed variable
 		{
 			//print first variable label, print in inverse if d2S == 0
 			//print first variable value
 		}
 
-		if(CANvars[d2N2].New == 1 || LastState == -1)		//update second displayed variable
+		if(CANvars[d2N2].New == 1 || LastState == -1 || LastState == CNGVAR1|| LastState == CNGVAR2|| LastState == CNGVAR3|| LastState == CNGVAR4)		//update second displayed variable
 		{
 			//print second variable label, print in inverse if d2S == 1
 			//print second variable value
 		}
 
+		SetLEDs(IND1OFF|IND2OFF|BTN_MENU_GREEN);
 
 		State = DISPLAY2;			//default to same state
 		switch(GetButtonPress())

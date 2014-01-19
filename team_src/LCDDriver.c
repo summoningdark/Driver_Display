@@ -242,8 +242,8 @@ void set_font(const uint8_t *pNewFont)
 	{
 		pFont = pNewFont;		//get pointer to new font
 		font_w = *pFont;		//get font width from font array	
-		font_h = *pFont + 1;		//get font height from font array
-		font_space = *pFont + 2;	//get font space from font array
+		font_h = *(pFont + 1);		//get font height from font array
+		font_space = *(pFont + 2);	//get font space from font array
 		font_bytes = font_h/8;		//8 pixels/byte
 		if (font_h % 8 != 0)
 			font_bytes++;		//partial rows count too
@@ -253,6 +253,14 @@ void set_font(const uint8_t *pNewFont)
 
 //prints a const string. iv inv is 0 prints normally, if inv is 1, prints inverted
 void print_cstr(const uint8_t* str, int8_t inv)
+{
+	uint8_t ch,i;
+	i=0;
+	while((ch=str[i++])!=0) print_char(ch, inv);
+}
+
+//prints a string. iv inv is 0 prints normally, if inv is 1, prints inverted
+void print_rstr(uint8_t* str, int8_t inv)
 {
 	uint8_t ch,i;
 	i=0;
@@ -292,7 +300,7 @@ void print_char(uint8_t txt, int8_t inv)
 		//fetch font data from program memory
 		for(j=0;j<font_bytes;j++)
 		{
-			temp_buf[j] = *(pFont+text_array_offset);
+			temp_buf[j] = *(pFont+text_array_offset+j);
 			if (inv) temp_buf[j] = ~temp_buf[j];
 		}
 
