@@ -13,14 +13,12 @@
 #define uint16_t unsigned int
 #define int16_t int
 
-extern
-
 //function prototypes
 void LCD_bl(int i);
 void Buttons();
-void SetLEDs(uint16_t LEDword);
+void SetLEDs(uint16_t LEDword, uint16_t LEDmask);
 unsigned int GetButtonPress();
-int GetMenuSelection(const unsigned char List[][20]);
+int GetMenuSelection(const unsigned char List[][22]);
 void LEDGpio_init();
 void LCDGpio_init();
 void ButtonGpioInit();
@@ -31,7 +29,7 @@ void LCDdelay();						//a delay of at least 500ns
 void delay_ms(uint16_t ms);				//function to delay ms milliseconds
 void SetLCDControlPort(uint8_t Cmd);	//this function should set whatever pins are used for the LCD control pins to outputs and set the values as follows:
 void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar);	//sets the CAN system to monitor CANvar using slot N
-void PrintCANvariable(uint8_t N,uint8_t x, uint8_t y);		//prints the value in slot N to the LCD
+void PrintCANvariable(uint8_t N, uint8_t reduced);		//prints the value in slot N to the LCD
 
 
 void LCD_bl(int i)
@@ -160,16 +158,17 @@ void Buttons()
 
 }
 
-void SetLEDs(uint16_t LEDword)
+void SetLEDs(uint16_t LEDword, uint16_t LEDmask)
 {
 	static unsigned int last;
 	int i;
 	unsigned int d;
 
-	if(LEDword != last)
+	d = (last & LEDmask) | (LEDword & ~LEDmask);		//only change what is masked
+
+	if(d != last)	//check if there is any change
 	{
-		d = LEDword;
-		last = LEDword;
+		last = d;
 		//pull LEDclk low
 		GpioDataRegs.GPACLEAR.bit.GPIO18 = 1;
 		//pull LEDclear low, wait, then drive LEDclear high
@@ -189,33 +188,35 @@ void SetLEDs(uint16_t LEDword)
 	}
 }
 
-int GetMenuSelection(const unsigned char List[][20])
+int GetMenuSelection(const unsigned char List[][22])
 {
-	//todo make menu selection robust against menus shorter than NLINES
-	//these defines determine the size of the menu. NLINES is the number of line the menu consists of.
-#define NLINES 4
+	//these defines determine the size of the screen. NLINES is the number of lines used to display the menu.
+	//the default font is 8 pixels high, so 8 lines will fit on the screen
+#define NLINES 8
 
-	int highlight,offset,i,max;
+	int highlight,offset,i,max,lines;
 
 	//start at the beginning of the menu
+	lines = NLINES;
 	highlight = 0;
 	offset = 0;
 	//find the end of the menu, marked by an empty string. max = number of menu entries
 	max = 0;
 	while(List[max][0]!=0) max++;
+	if (max < lines) lines = max;
 
 	//set the font to small(default font)
 	set_font(Font);
 	//clear the screen
 	clear_screen(0);
-	//print NLINES lines of the menu starting at line offset, with highlight inverted
+	//print lines lines of the menu starting at line offset, with highlight inverted
 	set_cursor(0,0);
-	for(i=0;i<NLINES;i++)
+	for(i=0;i<lines;i++)
 	{
-		print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight));		//print line
+		print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight),0);		//print line
 		clear_to_end();										//clear the rest of the line (entries may not all be the same length)
-		print_char(0x0D,0);									//CR
-		print_char(0x0A,0);									//LF
+		print_char(0x0D,0,0);									//CR
+		print_char(0x0A,0,0);									//LF
 	}
 
 	while(1)
@@ -225,8 +226,16 @@ int GetMenuSelection(const unsigned char List[][20])
 				if(--highlight == -1)			//decrement highlighted line, if it goes off the top,
 					if(--offset == -1)			//decrement the list offset, if it goes off the top
 					{
-						offset = max-NLINES;	//offset to the end
-						highlight = NLINES-1;	//highlight the last row
+						if (max < lines)
+						{
+							offset = 0;				//short menu offset stays at 0
+							highlight = max-1;		//short menu highlight the last entry
+						}
+						else
+						{
+							offset = max-lines;	//offset to the end
+							highlight = lines-1;	//highlight the last row
+						}
 					}
 					else
 					{
@@ -234,33 +243,43 @@ int GetMenuSelection(const unsigned char List[][20])
 					}
 				//redraw screen
 				set_cursor(0,0);
-				for(i=0;i<NLINES;i++)
+				for(i=0;i<lines;i++)
 				{
-					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight));		//print line
+					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight),0);		//print line
 					clear_to_end();										//clear the rest of the line (entries may not all be the same length)
-					print_char(0x0D,0);									//CR
-					print_char(0x0A,0);									//LF
+					print_char(0x0D,0,0);									//CR
+					print_char(0x0A,0,0);									//LF
 				}
 			break;
 		case BTN_DOWN:
-				if(++highlight == NLINES)			//increment highlighted line, if it goes off the bottom,
-					if(++offset == (max-NLINES+1))	//increment the list offset, if it goes off the bottom,
+				++highlight;						//increment highlighted line
+				if ((highlight == max) || (highlight == lines))			//test if highlighted line overruns either the screen or the menu
+				{
+					if(max < lines)
 					{
-						offset = 0;					//offset to the beginning
-						highlight = 0;				//highlight the first row
+						highlight = 0;					//wrap highlight back to top
 					}
 					else
 					{
-						highlight = NLINES-1;		//keep highlight at the bottom
+						if(++offset == (max-lines+1))	//increment the list offset, if it goes off the bottom,
+						{
+							offset = 0;					//offset to the beginning
+							highlight = 0;				//highlight the first row
+						}
+						else
+						{
+							highlight = lines-1;		//keep highlight at the bottom
+						}
 					}
+				}
 				//redraw screen
 				set_cursor(0,0);
-				for(i=0;i<NLINES;i++)
+				for(i=0;i<lines;i++)
 				{
-					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight));		//print line
+					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight),0);		//print line
 					clear_to_end();										//clear the rest of the line (entries may not all be the same length)
-					print_char(0x0D,0);									//CR
-					print_char(0x0A,0);									//LF
+					print_char(0x0D,0,0);									//CR
+					print_char(0x0A,0,0);									//LF
 				}
 			break;
 		case BTN_SELECT:
@@ -623,13 +642,44 @@ void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar)
 	}
 }
 
-void PrintCANvariable(uint8_t N,uint8_t x, uint8_t y)
+void PrintCANvariable(uint8_t N, uint8_t reduced)
 {
+	can_variable_struct TempVar;
+	char text[22];
+
 	//note disable interrupts before latching CANvars[n] to the temp CANvar
-	char text[20];
-	//set cursor to x,y
-	set_cursor(x,y);
+	DINT;
+		memcpy(&TempVar, &CANvars[N], sizeof(can_variable_struct));
+	EINT;
+
 	//create string from variable
-	sprintf(text,"%d\n",10);
-	print_rstr((unsigned int*)text,0);
+	switch(TempVar.TypeCode)
+	{
+	case 0:			//int16
+		sprintf(text,"%d",TempVar.data.I16);
+	break;
+	case 1:			//uint16
+		sprintf(text,"%u",TempVar.data.U16);
+	break;
+	case 2:			//int32
+		sprintf(text,"%ld",TempVar.data.I32);
+	break;
+	case 3:			//uint32
+		sprintf(text,"%lu",TempVar.data.U32);
+	break;
+	case 4:			//float 32
+			sprintf(text,"%f",TempVar.data.F32);
+	break;
+	case 5:			//int64
+			sprintf(text,"%lld",TempVar.data.I64);
+	break;
+	case 6:			//uint64
+			sprintf(text,"%llu",TempVar.data.U64);
+	break;
+	case 7:			//float64
+			sprintf(text,"%f",TempVar.data.F64);
+	break;
+	}
+
+	print_rstr((unsigned int*)text,0,reduced);
 }

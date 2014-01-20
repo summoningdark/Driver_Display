@@ -34,6 +34,7 @@ typedef struct CAN_VAR
 	Uint16 SID;
 	Uint16 TypeCode;
 	Uint16 Offset;
+	Uint16 index;
 	Uint16 New;
 	CAN_DATA_u data;
 } can_variable_struct;

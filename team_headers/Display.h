@@ -36,6 +36,17 @@
 #define BTN2GREEN			0x1000
 #define BTN3GREEN			0x2000
 #define BTN4GREEN			0x0400
+#define BTN0MASK			0x7DFF
+#define BTN1MASK			0xF6FF
+#define BTN2MASK			0xEF7F
+#define BTN3MASK			0xDFF7
+#define BTN4MASK			0xBBFF
+#define BTN_BACK_MASK		BTN3MASK
+#define BTN_UP_MASK			BTN2MASK
+#define BTN_DOWN_MASK		BTN1MASK
+#define BTN_SELECT_MASK		BTN0MASK
+#define BTN_MENU_MASK		BTN4MASK
+#define BTN_ALL_MASK		(BTN0MASK & BTN1MASK & BTN2MASK & BTN3MASK & BTN4MASK)
 #define BTN_BACK_GREEN		BTN3GREEN
 #define BTN_UP_GREEN		BTN2GREEN
 #define BTN_DOWN_GREEN		BTN1GREEN
@@ -46,10 +57,12 @@
 #define BTN_DOWN_RED		BTN1RED
 #define BTN_SELECT_RED		BTN0RED
 #define BTN_MENU_RED		BTN4RED
+#define IND1MASK		0xFFF8
 #define IND1OFF			0x0007
 #define IND1RED			0x0003
 #define IND1YELLOW		0x0006
 #define IND1GREEN		0x0005
+#define IND2MASK		0xFF8F
 #define IND2OFF			0x0070
 #define IND2RED			0x0060
 #define IND2YELLOW		0x0030
@@ -57,8 +70,8 @@
 
 extern void LCD_bl(int i);
 extern void Buttons();
-extern void SetLEDs(uint16_t LEDword);
-extern int GetMenuSelection(const unsigned char List[][20]);
+extern void SetLEDs(uint16_t LEDword, uint16_t LEDmask);
+extern int GetMenuSelection(const unsigned char List[][22]);
 extern unsigned int GetButtonPress();
 extern void LEDGpio_init();
 extern void LCDGpio_init();
@@ -70,6 +83,6 @@ extern void LCDdelay();
 extern void delay_ms(uint16_t ms);
 extern void SetLCDControlPort(uint8_t Cmd);
 extern void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar);
-extern void PrintCANvariable(uint8_t N, uint8_t x, uint8_t y);
+extern void PrintCANvariable(uint8_t N, uint8_t reduced);
 
 #endif /* DISPLAY_H_ */

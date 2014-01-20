@@ -82,8 +82,9 @@ void write_block(uint8_t x, uint8_t page, uint8_t length, uint8_t* buf);
 void clear_screen(uint8_t option);
 void set_font(const uint8_t *pNewFont);
 void set_cursor(uint8_t x, uint8_t y);
-void print_char(uint8_t txt, int8_t inv);
-void print_cstr(const uint8_t* str, int8_t inv);
+void print_char(uint8_t txt, int8_t inv, uint8_t reduced);
+void print_cstr(const uint8_t* str, int8_t inv, uint8_t reduced);
+void print_rstr(uint8_t* str, int8_t inv, uint8_t reduced);
 void clear_to_end();
 void del_char(void);
 void pixel(uint8_t S_R, uint8_t x, uint8_t y);
@@ -252,30 +253,31 @@ void set_font(const uint8_t *pNewFont)
 }
 
 //prints a const string. iv inv is 0 prints normally, if inv is 1, prints inverted
-void print_cstr(const uint8_t* str, int8_t inv)
+void print_cstr(const uint8_t* str, int8_t inv, uint8_t reduced)
 {
 	uint8_t ch,i;
 	i=0;
-	while((ch=str[i++])!=0) print_char(ch, inv);
+	while((ch=str[i++])!=0) print_char(ch, inv,reduced);
 }
 
 //prints a string. iv inv is 0 prints normally, if inv is 1, prints inverted
-void print_rstr(uint8_t* str, int8_t inv)
+void print_rstr(uint8_t* str, int8_t inv, uint8_t reduced)
 {
 	uint8_t ch,i;
 	i=0;
-	while((ch=str[i++])!=0) print_char(ch, inv);
+	while((ch=str[i++])!=0) print_char(ch, inv,reduced);
 }
 
 //prints a character to the screen, if inv !=0 prints char inverted
 //at x_offset, y_offset(top/left corner of character). Automatically augments offsets for next write
-void print_char(uint8_t txt, int8_t inv)
+void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 {
 
     // x_offset counts pixels from the left side of the screen
     // y_offset counts pixels from the top of the screen
 
 	int16_t text_array_offset, j;
+	uint8_t f;
 
 	unsigned int temp_buf[128];
 
@@ -292,10 +294,36 @@ void print_char(uint8_t txt, int8_t inv)
 	}
 	else
 	{
-		//coerce txt to valid printable character
-		if ((txt<32) || (txt>126)) txt = 32;
 
-		text_array_offset = (txt - 32) * font_bytes+3;	// txt-32 is the ascii offset to 'space', font_bytes is the # of bytes/character, and 3 for font width,height,space which are stores at the beginning of the array
+
+		if(reduced)	//see if we are using a reduced font (numerals only)
+		{
+			//coerce txt to valid printable character
+			//must treat '+' '-' '.' separately
+			if(txt == 43)	// '+'
+			{
+				text_array_offset = 10 * font_bytes + 3;
+			}
+			else if (txt == 45) // '-'
+			{
+				text_array_offset = 11 * font_bytes + 3;
+			}
+			else if (txt == 46) // '.'
+			{
+				text_array_offset = 12 * font_bytes + 3;
+			}
+			else
+			{
+				if ((txt<48) || (txt>57)) txt = 48;				// these are the numerals 0-9
+				text_array_offset = (txt - 48) * font_bytes+3;	// txt-48 is the ascii offset to '0', font_bytes is the # of bytes/character, and 3 for font width,height,space which are stores at the beginning of the array
+			}
+		}
+		else
+		{
+			//coerce txt to valid printable character
+			if ((txt<32) || (txt>126)) txt = 32;
+			text_array_offset = (txt - 32) * font_bytes+3;	// txt-32 is the ascii offset to 'space', font_bytes is the # of bytes/character, and 3 for font width,height,space which are stores at the beginning of the array
+		}
 
 		//fetch font data from program memory
 		for(j=0;j<font_bytes;j++)
@@ -314,7 +342,19 @@ void print_char(uint8_t txt, int8_t inv)
 		else
 		{
 			bitblt(x_offset, y_offset, font_w, font_h, font_mode, temp_buf);
-			x_offset+=font_w+font_space;
+			x_offset+=font_w;
+				f=0x00;
+				if (reverse==1)
+				{
+					f=0xFF;
+				}
+				if (inv)
+				{
+					f = ~f;
+				}
+				draw_block(x_offset, y_offset, x_offset+font_space, y_offset+font_h-1,f);	//erase the block
+
+			x_offset+=font_space;
 		}
 		//check x offset and do necessary wrapping
 
@@ -730,6 +770,13 @@ void draw_block(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t data)
 	static int16_t width = 0, height = 0,x,y;
 	uint8_t n;
 	n=data;
+
+	//coerce values to be in range
+	if (x1 > 127) x1 = 127;
+	if (x2 > 127) x2 = 127;
+	if (y1 > 127) y1 = 127;
+	if (y2 > 127) y2 = 127;
+
 	if (x1>x2)
 	{
 		width=x1-x2;

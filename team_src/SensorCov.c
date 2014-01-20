@@ -7,7 +7,8 @@
 
 #include "all.h"
 #include "menus.h"
-extern const unsigned char CANdbcNames[][20];
+
+extern const unsigned char CANdbcNames[][22];
 extern const can_variable_list_struct CANdbc[];
 
 ops_struct ops_temp;
@@ -45,11 +46,12 @@ void SensorCovInit()
 
 	//config LED control pins
 	LEDGpio_init();
-	SetLEDs(IND1OFF | IND2OFF);
+	SetLEDs((IND1OFF | IND2OFF), 0x0000);	//turn off all LEDs
 
 	//LCD init
 	LCDinit();
 	LCDSplash(1000);
+	SetLEDs(IND1RED, IND1MASK);				//start with red to indicate no CANcorder
 	set_font(Font);
 
 	//CONFIG ADC
@@ -78,7 +80,8 @@ void LatchStruct()
 
 void SensorCovMeasure()
 {
-	static int State=RACE_MODE, LastState=-1,DisplayState=RACE_MODE,d2N1=0,d2N2=1,d2S=0;
+	static int State=RACE_MODE, LastState=-1,DisplayState=RACE_MODE,d4S=0;
+	static int d4N[4]={0,1,2,3};
 	StopWatchRestart(conv_watch);
 	int tmp;
 	can_variable_list_struct tmpCANvar;
@@ -86,6 +89,7 @@ void SensorCovMeasure()
 	switch(State)
 	{
 	case -1:				//main menu
+		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 		tmp = GetMenuSelection(MainMenuText);	//get menu selection
 		if (tmp == -1)							//check if the user canceled
 			State = LastState;
@@ -97,10 +101,12 @@ void SensorCovMeasure()
 	break;
 
 	case RACE_MODE:			//default state (race)
-		if(CANvars[0].New == 1 || LastState == -1 || LastState == CNGVAR1|| LastState == CNGVAR2|| LastState == CNGVAR3|| LastState == CNGVAR4)	//if new can data or we just came off of the main menu
+		SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
+		if(CANvars[0].New == 1 || LastState == -1)	//if new can data or flag for redraw
 		{
 			set_font(FontLarge);
-			PrintCANvariable(1,0,10);				//update the display
+			set_cursor(0,10);					//center the value
+			PrintCANvariable(0, 0);				//update the display
 		}
 
 		if(GetButtonPress() == BTN_MENU)
@@ -112,70 +118,60 @@ void SensorCovMeasure()
 		LastState = RACE_MODE;
 	break;
 
-	case DISPLAY2:			//Display 2 with descriptions
-
-		if(CANvars[d2N1].New == 1 || LastState == -1 || LastState == CNGVAR1|| LastState == CNGVAR2|| LastState == CNGVAR3|| LastState == CNGVAR4)		//update first displayed variable
+	case DISPLAY4:			//Display 4 with descriptions
+		SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+		set_cursor(0,0);	//start at top
+		set_font(Font);		//use small font
+		for(tmp=0;tmp<4;tmp++)
 		{
-			//print first variable label, print in inverse if d2S == 0
-			//print first variable value
+			if(CANvars[d4N[tmp]].New == 1 || LastState == -1)							//update first displayed variable
+			{
+				//variable label, print in inverse if d4S == tmp
+				print_cstr((const uint8_t*)&CANdbcNames[CANvars[d4N[tmp]].index][0],(d4S==tmp),0);			//print line
+				clear_to_end();															//clear the rest of the line (entries may not all be the same length)
+				print_char(0x0D,0,0);													//CR
+				print_char(0x0A,0,0);													//LF
+				//print variable value
+				PrintCANvariable(d4N[tmp], 0);
+				print_char(0x0D,0,0);													//CR
+				print_char(0x0A,0,0);													//LF
+			}
+			else	// if not update, print 2 line feeds
+			{
+				print_char(0x0A,0,0);													//LF
+				print_char(0x0A,0,0);													//LF
+			}
 		}
 
-		if(CANvars[d2N2].New == 1 || LastState == -1 || LastState == CNGVAR1|| LastState == CNGVAR2|| LastState == CNGVAR3|| LastState == CNGVAR4)		//update second displayed variable
-		{
-			//print second variable label, print in inverse if d2S == 1
-			//print second variable value
-		}
-
-		SetLEDs(IND1OFF|IND2OFF|BTN_MENU_GREEN);
-
-		State = DISPLAY2;			//default to same state
+		State = DISPLAY4;			//default to same state
+		LastState = DISPLAY4;
 		switch(GetButtonPress())
 		{
 		case BTN_MENU:
 			State = -1;
 		break;
-		case BTN_UP:			//these buttons select which displayed variable is highlighted. in a list of two up and down do the same thing
+		case BTN_UP:			//these buttons select which displayed variable is highlighted.
+			if (--d4S == -1) d4S = 3;
+			LastState = -1;		//this changes the display, flag re-draw
+		break;
 		case BTN_DOWN:
-			if (d2S == 0) d2S = 1; else d2S = 0;
+			if (++d4S == 4) d4S = 0;
+			LastState = -1;		//this changes the display, flag re-draw
 		break;
 		case BTN_SELECT:		//this button increments the index of the highlighted variable
-			if(d2S == 0)
-			{
-				if (++d2N1 == 4) d2N1 = 0;
-			}
-			else
-			{
-				if (++d2N2 == 4) d2N2 = 0;
-			}
+			if (++d4N[d4S] == 4) d4N[d4S] = 0;
+			LastState = -1;		//this changes the display, flag re-draw
 		break;
 		case BTN_BACK:			//this button decrements the index of the highlighted variable
-			if(d2S == 0)
-			{
-				if (--d2N1 == -1) d2N1 = 3;
-			}
-			else
-			{
-				if (--d2N2 == -1) d2N2 = 3;
-			}
+			if (--d4N[d4S] == -1) d4N[d4S] = 3;
+			LastState = -1;		//this changes the display, flag re-draw
 		break;
 		}
-		DisplayState=DISPLAY2;
-		LastState = DISPLAY2;
-	break;
-
-	case DISPLAY4:			//Display 4 without descriptions
-
-
-		if(GetButtonPress() == BTN_MENU)
-			State = -1;
-		else
-			State = DISPLAY4;
-
 		DisplayState=DISPLAY4;
-		LastState = DISPLAY4;
 	break;
 
 	case CNGVAR1:		//Select Variable 1
+		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
 
 		if(tmp == -1)
@@ -186,12 +182,15 @@ void SensorCovMeasure()
 		{
 			tmpCANvar = CANdbc[tmp];
 			SetCANmonitor(1,  tmpCANvar);
+			CANvars[0].index = tmp;
 		}
 		State = DisplayState;
-		LastState = CNGVAR1;
+		LastState = -1;							//after changing variables, flag display redraw
+		clear_screen(0);						//give the next state a clear screen to work with
 	break;
 
 	case CNGVAR2:			//Select Variable 2
+		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
 
 		if(tmp == -1)
@@ -202,11 +201,15 @@ void SensorCovMeasure()
 		{
 			tmpCANvar = CANdbc[tmp];
 			SetCANmonitor(2,  tmpCANvar);
+			CANvars[1].index = tmp;
 		}
 		State = DisplayState;
-		LastState = CNGVAR2;	break;
+		LastState = -1;							//after changing variables, flag display redraw
+		clear_screen(0);						//give the next state a clear screen to work with
+	break;
 
 	case CNGVAR3:			//Select Variable 3
+		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
 
 		if(tmp == -1)
@@ -217,11 +220,15 @@ void SensorCovMeasure()
 		{
 			tmpCANvar = CANdbc[tmp];
 			SetCANmonitor(3,  tmpCANvar);
+			CANvars[2].index = tmp;
 		}
 		State = DisplayState;
-		LastState = CNGVAR3;	break;
+		LastState = -1;							//after changing variables, flag display redraw
+		clear_screen(0);						//give the next state a clear screen to work with
+	break;
 
 	case CNGVAR4:			//Select Variable 4
+		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
 
 		if(tmp == -1)
@@ -232,9 +239,12 @@ void SensorCovMeasure()
 		{
 			tmpCANvar = CANdbc[tmp];
 			SetCANmonitor(4,  tmpCANvar);
+			CANvars[3].index = tmp;
 		}
 		State = DisplayState;
-		LastState = CNGVAR4;	break;
+		LastState = -1;							//after changing variables, flag display redraw
+		clear_screen(0);						//give the next state a clear screen to work with
+	break;
 
 	default:
 		State = RACE_MODE;

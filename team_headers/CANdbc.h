@@ -26,7 +26,8 @@ const can_variable_list_struct CANdbc[NUMCANVARS]={	{0,0,0},
 };
 
 //always end the CANdbcNames array with an empty string, the menu function needs this to know how many entries there are
-const unsigned char CANdbcNames[][20]={	"Variable 1",
+//note only 21 characters are printable on a line
+const unsigned char CANdbcNames[][22]={	"Variable 1",
 											"Variable 2",
 											"Variable 3",
 											"Variable 4",
