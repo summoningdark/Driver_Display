@@ -37,7 +37,7 @@ void StopWatchSetUp(float time)
 	StartCpuTimer0();
 }
 
-stopwatch_struct* StartStopWatch(unsigned int time)
+stopwatch_struct* StartStopWatch(Uint32 time)
 {
 	stopwatch_struct* watch = (stopwatch_struct*)myMalloc(sizeof(stopwatch_struct));
 	watch->Start = StopWatch.InterruptCount;

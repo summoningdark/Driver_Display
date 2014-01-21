@@ -83,8 +83,8 @@ void clear_screen(uint8_t option);
 void set_font(const uint8_t *pNewFont);
 void set_cursor(uint8_t x, uint8_t y);
 void print_char(uint8_t txt, int8_t inv, uint8_t reduced);
-void print_cstr(const uint8_t* str, int8_t inv, uint8_t reduced);
-void print_rstr(uint8_t* str, int8_t inv, uint8_t reduced);
+void print_cstr(const char* str, int8_t inv, uint8_t reduced);
+void print_rstr(char* str, int8_t inv, uint8_t reduced);
 void clear_to_end();
 void del_char(void);
 void pixel(uint8_t S_R, uint8_t x, uint8_t y);
@@ -129,7 +129,7 @@ uint8_t aux_font=0;	//which font to use 0=default, 1=aux
 
 //this include file stores all the relevant font data.
 #include "font.h"
-#include "aux_font.h"
+#include "R24x40_font.h"
 
 //===============================================================these functions are updated=========================================================================
 void LCDSplash(uint16_t ms)
@@ -253,7 +253,7 @@ void set_font(const uint8_t *pNewFont)
 }
 
 //prints a const string. iv inv is 0 prints normally, if inv is 1, prints inverted
-void print_cstr(const uint8_t* str, int8_t inv, uint8_t reduced)
+void print_cstr(const char* str, int8_t inv, uint8_t reduced)
 {
 	uint8_t ch,i;
 	i=0;
@@ -261,7 +261,7 @@ void print_cstr(const uint8_t* str, int8_t inv, uint8_t reduced)
 }
 
 //prints a string. iv inv is 0 prints normally, if inv is 1, prints inverted
-void print_rstr(uint8_t* str, int8_t inv, uint8_t reduced)
+void print_rstr(char* str, int8_t inv, uint8_t reduced)
 {
 	uint8_t ch,i;
 	i=0;

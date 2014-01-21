@@ -13,8 +13,8 @@ extern void LCDSplash(uint16_t ms);
 
 //Text functions
 extern void set_cursor(uint8_t x, int8_t y);
-extern void print_cstr(const uint8_t* str, int8_t inv, uint8_t reduced);
-extern void print_rstr(uint8_t* str, int8_t inv, uint8_t reduced);
+extern void print_cstr(const char* str, int8_t inv, uint8_t reduced);
+extern void print_rstr(char* str, int8_t inv, uint8_t reduced);
 extern void clear_to_end();			//clears a box 1 font height tall from the current cursor position to the edge of the screen
 extern void print_char(uint8_t txt, uint8_t inv, uint8_t reduced);
 extern void del_char();
@@ -31,7 +31,7 @@ extern void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t 
 
 //access to fonts
 extern const uint8_t Font[];
-extern const uint8_t FontLarge[];
+extern const uint8_t RFontHuge[];
 
 
 

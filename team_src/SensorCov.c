@@ -8,12 +8,35 @@
 #include "all.h"
 #include "menus.h"
 
-extern const unsigned char CANdbcNames[][22];
+extern const char CANdbcNames[][22];
 extern const can_variable_list_struct CANdbc[];
 
 ops_struct ops_temp;
 data_struct data_temp;
 stopwatch_struct* conv_watch;
+stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
+
+//Defines for States
+#define CV1			1
+#define CV2			2
+#define CV3			3
+#define CV4			4
+#define MENUSETUP	5
+#define MENUCHOICE	6
+#define MAINMENU	7
+#define VARMENU		8
+#define MANUALVAR	9
+#define RACEMODE	10
+#define DISPLAY4	11
+
+//variables for menus
+#define NLINES 8
+int highlight,offset,i,max,lines,MenuReturn;
+const char (*MenuList)[22];		//pointer to menu entries
+int MenuStack[10];							//stack for successive menu calls
+int MenuStackp;
+void Push(int s);
+int Pop();
 
 void SensorCov()
 {
@@ -54,6 +77,8 @@ void SensorCovInit()
 	SetLEDs(IND1RED, IND1MASK);				//start with red to indicate no CANcorder
 	set_font(Font);
 
+	//set up menus
+	MenuStackp = 0;
 	//CONFIG ADC
 	//adcinit();
 
@@ -67,6 +92,7 @@ void SensorCovInit()
 	//ConfigLED1();
 	//CONFIG 12V SWITCH
 	//Config12V();
+	Menu_watch = StartStopWatch(700000);
 	conv_watch = StartStopWatch(1000);
 }
 
@@ -80,7 +106,7 @@ void LatchStruct()
 
 void SensorCovMeasure()
 {
-	static int State=RACE_MODE, LastState=-1,DisplayState=RACE_MODE,d4S=0;
+	static int State=RACEMODE, d4S=0, DisplayRefresh = 1;
 	static int d4N[4]={0,1,2,3};
 	StopWatchRestart(conv_watch);
 	int tmp;
@@ -88,166 +114,295 @@ void SensorCovMeasure()
 
 	switch(State)
 	{
-	case -1:				//main menu
+	case MENUSETUP:				//menu setup
+		//set LEDs for a menu
 		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
-		tmp = GetMenuSelection(MainMenuText);	//get menu selection
-		if (tmp == -1)							//check if the user canceled
-			State = LastState;
-		else
-			State = tmp;
+		//start at the beginning of the menu
+		lines = NLINES;
+		highlight = 0;
+		offset = 0;
+		//find the end of the menu, marked by an empty string. max = number of menu entries
+		max = 0;
+		while(MenuList[max][0]!=0) max++;
+		if (max < lines) lines = max;
 
-		LastState = -1;							//update LastState
-		clear_screen(0);						//give the next state a clear screen to work with
+		//set the font to small(default font)
+		set_font(Font);
+		//clear the screen
+		clear_screen(0);
+		//print lines lines of the menu starting at line offset, with highlight inverted
+		set_cursor(0,0);
+		for(i=0;i<lines;i++)
+		{
+			print_cstr(&MenuList[i+offset][0],(i==highlight),0);		//print line
+			clear_to_end();										//clear the rest of the line (entries may not all be the same length)
+			print_char(0x0D,0,0);									//CR
+			print_char(0x0A,0,0);									//LF
+		}
+		StopWatchRestart(Menu_watch);
+		State = MENUCHOICE;		//next state is the choosing
+	break;
+	case MENUCHOICE:				//menu choice
+		if(isStopWatchComplete(Menu_watch)==0)		//check for timeout
+		{
+			switch(GetButtonPress())
+			{
+			case BTN_UP:
+				StopWatchRestart(Menu_watch);
+					if(--highlight == -1)			//decrement highlighted line, if it goes off the top,
+						if(--offset == -1)			//decrement the list offset, if it goes off the top
+						{
+							if (max < lines)
+							{
+								offset = 0;				//short menu offset stays at 0
+								highlight = max-1;		//short menu highlight the last entry
+							}
+							else
+							{
+								offset = max-lines;	//offset to the end
+								highlight = lines-1;	//highlight the last row
+							}
+						}
+						else
+						{
+							highlight = 0;			//keep highlight at the top
+						}
+					//redraw screen
+					set_cursor(0,0);
+					for(i=0;i<lines;i++)
+					{
+						print_cstr(&MenuList[i+offset][0],(i==highlight),0);		//print line
+						clear_to_end();										//clear the rest of the line (entries may not all be the same length)
+						print_char(0x0D,0,0);									//CR
+						print_char(0x0A,0,0);									//LF
+					}
+				break;
+			case BTN_DOWN:
+				StopWatchRestart(Menu_watch);
+					++highlight;						//increment highlighted line
+					if ((highlight == max) || (highlight == lines))			//test if highlighted line overruns either the screen or the menu
+					{
+						if(max < lines)
+						{
+							highlight = 0;					//wrap highlight back to top
+						}
+						else
+						{
+							if(++offset == (max-lines+1))	//increment the list offset, if it goes off the bottom,
+							{
+								offset = 0;					//offset to the beginning
+								highlight = 0;				//highlight the first row
+							}
+							else
+							{
+								highlight = lines-1;		//keep highlight at the bottom
+							}
+						}
+					}
+					//redraw screen
+					set_cursor(0,0);
+					for(i=0;i<lines;i++)
+					{
+						print_cstr(&MenuList[i+offset][0],(i==highlight),0);		//print line
+						clear_to_end();										//clear the rest of the line (entries may not all be the same length)
+						print_char(0x0D,0,0);									//CR
+						print_char(0x0A,0,0);									//LF
+					}
+				break;
+			case BTN_SELECT:
+					MenuReturn = (highlight+offset);		//return value is choice
+					State = Pop();							//return state from stack
+					clear_screen(0);						//give the next state a clear screen to work with
+			break;
+			case BTN_BACK:
+			case BTN_MENU:
+					MenuReturn = -1;						//return value is cancel
+					State = Pop();							//return state from stack
+					clear_screen(0);						//give the next state a clear screen to work with
+			break;
+			default:
+				break;
+			}
+		}
+		else
+		{
+			State = Pop();
+			MenuReturn = -1;						// return Cancel for a timeout
+			clear_screen(0);						//give the next state a clear screen to work with
+		}
 	break;
 
-	case RACE_MODE:			//default state (race)
-		SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
-		if(CANvars[0].New == 1 || LastState == -1)	//if new can data or flag for redraw
+	case MAINMENU:				//this state decides what to do with the choice from the main menu
+		switch (MenuReturn)
 		{
-			set_font(FontLarge);
-			set_cursor(0,10);					//center the value
-			PrintCANvariable(0, 0);				//update the display
+		case -1:				//Cancel, pop stack
+			State = Pop();
+		break;
+		case MM_RACEMODE:
+			//clear stack
+			MenuStackp = 0;
+			State = RACEMODE;
+			clear_screen(0);
+		break;
+		case MM_DISPLAY4:
+			//clear stack
+			MenuStackp = 0;
+			State = DISPLAY4;
+			clear_screen(0);
+		break;
+		case MM_CV1:
+			Push(CV1);						//ultimately need to return to set variable 1
+			Push(VARMENU);					//need to select from list or manual
+			MenuList = VariableMenuText;	//point to the right text for the menu
+			State = MENUSETUP;				//go to menu setup
+		break;
+		case MM_CV2:
+			Push(CV2);						//ultimately need to return to set variable 2
+			Push(VARMENU);					//need to select from list or manual
+			MenuList = VariableMenuText;	//point to the right text for the menu
+			State = MENUSETUP;				//go to menu setup
+		break;
+		case MM_CV3:
+			Push(CV3);						//ultimately need to return to set variable 3
+			Push(VARMENU);					//need to select from list or manual
+			MenuList = VariableMenuText;	//point to the right text for the menu
+			State = MENUSETUP;				//go to menu setup
+		break;
+		case MM_CV4:
+			Push(CV4);						//ultimately need to return to set variable 4
+			Push(VARMENU);					//need to select from list or manual
+			MenuList = VariableMenuText;	//point to the right text for the menu
+			State = MENUSETUP;				//go to menu setup
+		break;
 		}
+	break;
 
-		if(GetButtonPress() == BTN_MENU)
-			State = -1;
-		else
-			State = RACE_MODE;
+	case VARMENU:				//this picks action based on variable menu selection
+		switch(MenuReturn)
+		{
+		case -1:
+			State = Pop();
+		break;
+		case VM_LIST:
+			MenuList = CANdbcNames;		//point to the list of variables
+			State = MENUSETUP;			//setup menu
+		break;
+		case VM_MANUAL:
+			State = MANUALVAR;
+		break;
+		}
+	break;
 
-		DisplayState=RACE_MODE;
-		LastState = RACE_MODE;
+	case MANUALVAR:			//this does up a manual entry of a watch variable
+		print_cstr("Not Yet Implemented",0,0);
+		delay_ms(1500);
+		Pop();				//pop the CVn
+		State = Pop();
+		clear_screen(0);
+	break;
+
+	case RACEMODE:			//default state (race)
+			SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
+			if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+			{
+				DisplayRefresh=0;					//just redrew the display
+				set_font(RFontHuge);				//big font for race mode
+				set_cursor(0,10);					//center the value
+				PrintCANvariable(0, 1);				//update the display
+			}
+
+			if(GetButtonPress() == BTN_MENU)
+			{
+				DisplayRefresh = 1;					//Flag Display for update
+				MenuList = MainMenuText;			//point to main menu text
+				MenuStackp = 0;						//clear stack
+				Push(RACEMODE);						//make sure we come back here
+				Push(MAINMENU);						//push main menu state
+				State = MENUSETUP;					//go to menu setup
+			}
+			else
+			{
+				State = RACEMODE;					//stay on this state
+			}
 	break;
 
 	case DISPLAY4:			//Display 4 with descriptions
-		SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
-		set_cursor(0,0);	//start at top
-		set_font(Font);		//use small font
-		for(tmp=0;tmp<4;tmp++)
-		{
-			if(CANvars[d4N[tmp]].New == 1 || LastState == -1)							//update first displayed variable
+			SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+			set_cursor(0,0);	//start at top
+			set_font(Font);		//use small font
+			for(tmp=0;tmp<4;tmp++)
 			{
-				//variable label, print in inverse if d4S == tmp
-				print_cstr((const uint8_t*)&CANdbcNames[CANvars[d4N[tmp]].index][0],(d4S==tmp),0);			//print line
-				clear_to_end();															//clear the rest of the line (entries may not all be the same length)
-				print_char(0x0D,0,0);													//CR
-				print_char(0x0A,0,0);													//LF
-				//print variable value
-				PrintCANvariable(d4N[tmp], 0);
-				print_char(0x0D,0,0);													//CR
-				print_char(0x0A,0,0);													//LF
+				if(CANvars[d4N[tmp]].New == 1 || DisplayRefresh)							//update first displayed variable
+				{
+					//variable label, print in inverse if d4S == tmp
+					print_char(tmp+49,(d4S==tmp),0);										//print Watch label
+					print_char(' ',(d4S==tmp),0);;
+					print_rstr(&CANvars[d4N[tmp]].Name[0],(d4S==tmp),0);					//print Variable Name
+					clear_to_end();															//clear the rest of the line (entries may not all be the same length)
+					print_char(0x0D,0,0);													//CR
+					print_char(0x0A,0,0);													//LF
+					//print variable value
+					PrintCANvariable(d4N[tmp], 0);
+					print_char(0x0D,0,0);													//CR
+					print_char(0x0A,0,0);													//LF
+				}
+				else	// if not update, print 2 line feeds
+				{
+					print_char(0x0A,0,0);													//LF
+					print_char(0x0A,0,0);													//LF
+				}
 			}
-			else	// if not update, print 2 line feeds
+
+			State = DISPLAY4;						//default come back to this state
+			switch(GetButtonPress())
 			{
-				print_char(0x0A,0,0);													//LF
-				print_char(0x0A,0,0);													//LF
+			case BTN_MENU:
+				DisplayRefresh = 1;					//Flag Display for update
+				MenuList = MainMenuText;			//point to main menu text
+				MenuStackp = 0;						//clear stack
+				Push(DISPLAY4);						//make sure we come back here
+				Push(MAINMENU);						//push main menu state
+				State = MENUSETUP;					//go to menu setup
+			break;
+			case BTN_UP:			//these buttons select which displayed variable is highlighted.
+				if (--d4S == -1) d4S = 3;
+				DisplayRefresh = 1;					//Flag Display for update
+				break;
+			case BTN_DOWN:
+				if (++d4S == 4) d4S = 0;
+				DisplayRefresh = 1;					//Flag Display for update
+				break;
+			case BTN_SELECT:		//this button increments the index of the highlighted variable
+				if (++d4N[d4S] == 4) d4N[d4S] = 0;
+				DisplayRefresh = 1;					//Flag Display for update
+				break;
+			case BTN_BACK:			//this button decrements the index of the highlighted variable
+				if (--d4N[d4S] == -1) d4N[d4S] = 3;
+				DisplayRefresh = 1;					//Flag Display for update
+				break;
 			}
-		}
-
-		State = DISPLAY4;			//default to same state
-		LastState = DISPLAY4;
-		switch(GetButtonPress())
-		{
-		case BTN_MENU:
-			State = -1;
-		break;
-		case BTN_UP:			//these buttons select which displayed variable is highlighted.
-			if (--d4S == -1) d4S = 3;
-			LastState = -1;		//this changes the display, flag re-draw
-		break;
-		case BTN_DOWN:
-			if (++d4S == 4) d4S = 0;
-			LastState = -1;		//this changes the display, flag re-draw
-		break;
-		case BTN_SELECT:		//this button increments the index of the highlighted variable
-			if (++d4N[d4S] == 4) d4N[d4S] = 0;
-			LastState = -1;		//this changes the display, flag re-draw
-		break;
-		case BTN_BACK:			//this button decrements the index of the highlighted variable
-			if (--d4N[d4S] == -1) d4N[d4S] = 3;
-			LastState = -1;		//this changes the display, flag re-draw
-		break;
-		}
-		DisplayState=DISPLAY4;
 	break;
 
-	case CNGVAR1:		//Select Variable 1
-		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
-		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
-
-		if(tmp == -1)
+	case CV1:		//Change Variable 1,2,3,4
+	case CV2:
+	case CV3:
+	case CV4:
+		if (MenuReturn == -1)
 		{
-			State = -1;
+			State = Pop();
 		}
 		else
 		{
-			tmpCANvar = CANdbc[tmp];
-			SetCANmonitor(1,  tmpCANvar);
-			CANvars[0].index = tmp;
+			tmpCANvar = CANdbc[MenuReturn];
+			SetCANmonitor(State,  tmpCANvar);		//for code efficiency the State variable CVn = n
+			memcpy(&CANvars[State-1].Name, &CANdbcNames[MenuReturn],22);
+			State = Pop();
+			clear_screen(0);						//give the next state a clear screen to work with
 		}
-		State = DisplayState;
-		LastState = -1;							//after changing variables, flag display redraw
-		clear_screen(0);						//give the next state a clear screen to work with
 	break;
-
-	case CNGVAR2:			//Select Variable 2
-		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
-		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
-
-		if(tmp == -1)
-		{
-			State = -1;
-		}
-		else
-		{
-			tmpCANvar = CANdbc[tmp];
-			SetCANmonitor(2,  tmpCANvar);
-			CANvars[1].index = tmp;
-		}
-		State = DisplayState;
-		LastState = -1;							//after changing variables, flag display redraw
-		clear_screen(0);						//give the next state a clear screen to work with
-	break;
-
-	case CNGVAR3:			//Select Variable 3
-		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
-		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
-
-		if(tmp == -1)
-		{
-			State = -1;
-		}
-		else
-		{
-			tmpCANvar = CANdbc[tmp];
-			SetCANmonitor(3,  tmpCANvar);
-			CANvars[2].index = tmp;
-		}
-		State = DisplayState;
-		LastState = -1;							//after changing variables, flag display redraw
-		clear_screen(0);						//give the next state a clear screen to work with
-	break;
-
-	case CNGVAR4:			//Select Variable 4
-		SetLEDs(BTN_BACK_RED | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
-		tmp = GetMenuSelection(CANdbcNames);	//get menu selection
-
-		if(tmp == -1)
-		{
-			State = -1;
-		}
-		else
-		{
-			tmpCANvar = CANdbc[tmp];
-			SetCANmonitor(4,  tmpCANvar);
-			CANvars[3].index = tmp;
-		}
-		State = DisplayState;
-		LastState = -1;							//after changing variables, flag display redraw
-		clear_screen(0);						//give the next state a clear screen to work with
-	break;
-
 	default:
-		State = RACE_MODE;
+		MenuStackp=0;
+		State = RACEMODE;
 	}
 }
 
@@ -279,6 +434,21 @@ void SensorCovDeInit()
 {
 	//todo USER: SensorCovDeInit()
 	StopStopWatch(conv_watch);
+	StopStopWatch(Menu_watch);
 	CLEARLED0();
 	CLEARLED1();
+}
+
+void Push(int s)
+{
+	MenuStack[MenuStackp++] = s;
+	if (MenuStackp == 10) MenuStackp = 0;
+}
+
+int Pop()
+{
+	int s;
+	s = MenuStack[--MenuStackp];
+	if (MenuStackp == -1) MenuStackp = 0;
+	return s;
 }

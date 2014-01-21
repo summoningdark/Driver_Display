@@ -13,12 +13,14 @@
 #define uint16_t unsigned int
 #define int16_t int
 
+extern stopwatch_struct* Menu_watch;
+
 //function prototypes
 void LCD_bl(int i);
 void Buttons();
 void SetLEDs(uint16_t LEDword, uint16_t LEDmask);
 unsigned int GetButtonPress();
-int GetMenuSelection(const unsigned char List[][22]);
+int GetMenuSelection(const char List[][22]);
 void LEDGpio_init();
 void LCDGpio_init();
 void ButtonGpioInit();
@@ -188,7 +190,8 @@ void SetLEDs(uint16_t LEDword, uint16_t LEDmask)
 	}
 }
 
-int GetMenuSelection(const unsigned char List[][22])
+/*          // GetMenuSelection(...) is out dated leaving commented in case it is needed in the future
+int GetMenuSelection(const char List[][22])
 {
 	//these defines determine the size of the screen. NLINES is the number of lines used to display the menu.
 	//the default font is 8 pixels high, so 8 lines will fit on the screen
@@ -213,16 +216,17 @@ int GetMenuSelection(const unsigned char List[][22])
 	set_cursor(0,0);
 	for(i=0;i<lines;i++)
 	{
-		print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight),0);		//print line
+		print_cstr(&List[i+offset][0],(i==highlight),0);		//print line
 		clear_to_end();										//clear the rest of the line (entries may not all be the same length)
 		print_char(0x0D,0,0);									//CR
 		print_char(0x0A,0,0);									//LF
 	}
-
-	while(1)
+	StopWatchRestart(Menu_watch);
+	while(isStopWatchComplete(Menu_watch)==0)
 		switch(GetButtonPress())
 		{
 		case BTN_UP:
+			StopWatchRestart(Menu_watch);
 				if(--highlight == -1)			//decrement highlighted line, if it goes off the top,
 					if(--offset == -1)			//decrement the list offset, if it goes off the top
 					{
@@ -245,13 +249,14 @@ int GetMenuSelection(const unsigned char List[][22])
 				set_cursor(0,0);
 				for(i=0;i<lines;i++)
 				{
-					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight),0);		//print line
+					print_cstr(&List[i+offset][0],(i==highlight),0);		//print line
 					clear_to_end();										//clear the rest of the line (entries may not all be the same length)
 					print_char(0x0D,0,0);									//CR
 					print_char(0x0A,0,0);									//LF
 				}
 			break;
 		case BTN_DOWN:
+			StopWatchRestart(Menu_watch);
 				++highlight;						//increment highlighted line
 				if ((highlight == max) || (highlight == lines))			//test if highlighted line overruns either the screen or the menu
 				{
@@ -276,7 +281,7 @@ int GetMenuSelection(const unsigned char List[][22])
 				set_cursor(0,0);
 				for(i=0;i<lines;i++)
 				{
-					print_cstr((const uint8_t*)&List[i+offset][0],(i==highlight),0);		//print line
+					print_cstr(&List[i+offset][0],(i==highlight),0);		//print line
 					clear_to_end();										//clear the rest of the line (entries may not all be the same length)
 					print_char(0x0D,0,0);									//CR
 					print_char(0x0A,0,0);									//LF
@@ -290,7 +295,10 @@ int GetMenuSelection(const unsigned char List[][22])
 		default:
 			break;
 		}
+
+	return -1;	//if stopwatch expires, cancel out of menu
 }
+*/
 
 unsigned int GetButtonPress()
 {
@@ -681,5 +689,5 @@ void PrintCANvariable(uint8_t N, uint8_t reduced)
 	break;
 	}
 
-	print_rstr((unsigned int*)text,0,reduced);
+	print_rstr(text,0,reduced);
 }

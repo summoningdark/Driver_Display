@@ -71,7 +71,7 @@
 extern void LCD_bl(int i);
 extern void Buttons();
 extern void SetLEDs(uint16_t LEDword, uint16_t LEDmask);
-extern int GetMenuSelection(const unsigned char List[][22]);
+extern int GetMenuSelection(const char List[][22]);
 extern unsigned int GetButtonPress();
 extern void LEDGpio_init();
 extern void LCDGpio_init();

@@ -11,11 +11,11 @@
 typedef struct StopWatch
 {
 	Uint32 Start;
-	unsigned int Time;
+	Uint32 Time;
 }stopwatch_struct;
 
 void StopWatchSetUp(float time);
-stopwatch_struct* StartStopWatch(unsigned int time);
+stopwatch_struct* StartStopWatch(Uint32 time);
 char isStopWatchComplete(stopwatch_struct*);
 void StopStopWatch(stopwatch_struct* watch);
 void StopWatchRestart(stopwatch_struct* watch);

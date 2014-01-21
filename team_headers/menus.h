@@ -8,17 +8,16 @@
 #ifndef MENUS_H_
 #define MENUS_H_
 
-//menu lists
-//make sure to update defines if the order is changed
-#define RACE_MODE	0
-#define DISPLAY4	1
-#define CNGVAR1		2
-#define CNGVAR2		3
-#define CNGVAR3		4
-#define CNGVAR4		5
+
+#define MM_RACEMODE 0
+#define MM_DISPLAY4 1
+#define MM_CV1 		2
+#define MM_CV2 		3
+#define MM_CV3 		4
+#define MM_CV4 		5
 
 //note only 21 chars are printable on a line.
-const unsigned char MainMenuText[][22]={	"Race Mode",
+const char MainMenuText[][22]={	"Race Mode",
 											"Display 4",
 											"Choose Watch 1",
 											"Choose Watch 2",
@@ -26,6 +25,13 @@ const unsigned char MainMenuText[][22]={	"Race Mode",
 											"Choose Watch 4",
 											""};
 
+#define VM_LIST 	0
+#define VM_MANUAL	1
 
+const char VariableMenuText[][22]={
+											"Choose from List",
+											"Enter Manually",
+											""
+};
 
 #endif /* MENUS_H_ */

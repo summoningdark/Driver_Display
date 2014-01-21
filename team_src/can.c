@@ -21,26 +21,26 @@ void CANSetup()
 	CANvars[0].SID = CANdbc[VAR1DEFAULT].SID;
 	CANvars[0].TypeCode = CANdbc[VAR1DEFAULT].TypeCode;
 	CANvars[0].Offset = CANdbc[VAR1DEFAULT].Offset;
-	CANvars[0].index = VAR1DEFAULT;
 	CANvars[0].New = 0;
+	memcpy(&CANvars[0].Name, &CANdbcNames[VAR1DEFAULT],22);
 
 	CANvars[1].SID = CANdbc[VAR2DEFAULT].SID;
 	CANvars[1].TypeCode = CANdbc[VAR2DEFAULT].TypeCode;
 	CANvars[1].Offset = CANdbc[VAR2DEFAULT].Offset;
-	CANvars[1].index = VAR2DEFAULT;
 	CANvars[1].New = 0;
+	memcpy(&CANvars[1].Name, &CANdbcNames[VAR2DEFAULT],22);
 
 	CANvars[2].SID = CANdbc[VAR3DEFAULT].SID;
 	CANvars[2].TypeCode = CANdbc[VAR3DEFAULT].TypeCode;
 	CANvars[2].Offset = CANdbc[VAR3DEFAULT].Offset;
-	CANvars[2].index = VAR3DEFAULT;
 	CANvars[2].New = 0;
+	memcpy(&CANvars[2].Name, &CANdbcNames[VAR3DEFAULT],22);
 
 	CANvars[3].SID = CANdbc[VAR4DEFAULT].SID;
 	CANvars[3].TypeCode = CANdbc[VAR4DEFAULT].TypeCode;
 	CANvars[3].Offset = CANdbc[VAR4DEFAULT].Offset;
-	CANvars[3].index = VAR4DEFAULT;
 	CANvars[3].New = 0;
+	memcpy(&CANvars[3].Name, &CANdbcNames[VAR4DEFAULT],22);
 
 	InitECanaGpio();
 	InitECana();
