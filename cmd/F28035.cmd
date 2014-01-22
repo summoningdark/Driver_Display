@@ -73,8 +73,8 @@ PAGE 0:    /* Program Memory */
    RAML0       : origin = 0x008000, length = 0x000800     /* on-chip RAM block L0 */
    RAML1       : origin = 0x008800, length = 0x000400     /* on-chip RAM block L1 */
    OTP         : origin = 0x3D7800, length = 0x000400     /* on-chip OTP */
-   BOOTLOADER  : origin = 0x3E8000, length = 0x002000     /* on-chip FLASH */
-   FLASHG      : origin = 0x3EA000, length = 0x002000     /* on-chip FLASH */
+   BOOTLOADER  : origin = 0x3E8000, length = 0x001000     /* on-chip FLASH */
+   FLASHG      : origin = 0x3E9000, length = 0x003000     /* on-chip FLASH */
    FLASHF      : origin = 0x3EC000, length = 0x004000     /* on-chip FLASH */
    //FLASHE      : origin = 0x3EE000, length = 0x002000     /* on-chip FLASH */
    FLASHD      : origin = 0x3F0000, length = 0x002000     /* on-chip FLASH */
@@ -98,8 +98,8 @@ PAGE 1 :   /* Data Memory */
    BOOT_RSVD   : origin = 0x000000, length = 0x000050     /* Part of M0, BOOT rom will use this for stack */
    RAMM0       : origin = 0x000050, length = 0x0003B0     /* on-chip RAM block M0 */
    RAMM1       : origin = 0x000400, length = 0x000400     /* on-chip RAM block M1 */
-   RAML2       : origin = 0x008C00, length = 0x000400     /* on-chip RAM block L2 */
-   RAML3       : origin = 0x009000, length = 0x001000     /* on-chip RAM block L3 */
+   RAML2       : origin = 0x008C00, length = 0x000500     /* on-chip RAM block L2 */
+   RAML3       : origin = 0x009100, length = 0x000F00     /* on-chip RAM block L3 */
    FLASHB      : origin = 0x3F4000, length = 0x002000     /* on-chip FLASH */
 
 }

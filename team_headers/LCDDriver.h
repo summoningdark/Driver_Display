@@ -25,12 +25,14 @@ extern void pixel(uint8_t S_R, uint8_t x, uint8_t y);
 extern void line(uint8_t S_R, int8_t x0, int8_t y0, int8_t x1, int8_t y1);
 extern void circle(uint8_t S_R, int8_t x0, int8_t y0, int8_t r);
 extern void box(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
+extern void status_bar(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t percent, uint8_t direction);
 extern void draw_block(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t data);
 extern void draw_sprite(uint8_t x, uint8_t y, uint8_t n, uint8_t mode);
 extern void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, uint8_t* data);
 
 //access to fonts
 extern const uint8_t Font[];
+extern const uint8_t FontLarge[];
 extern const uint8_t RFontHuge[];
 
 

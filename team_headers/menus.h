@@ -10,14 +10,16 @@
 
 
 #define MM_RACEMODE 0
-#define MM_DISPLAY4 1
-#define MM_CV1 		2
-#define MM_CV2 		3
-#define MM_CV3 		4
-#define MM_CV4 		5
+#define MM_TESTMODE 1
+#define MM_DISPLAY4 2
+#define MM_CV1 		3
+#define MM_CV2 		4
+#define MM_CV3 		5
+#define MM_CV4 		6
 
 //note only 21 chars are printable on a line.
-const char MainMenuText[][22]={	"Race Mode",
+const char MainMenuText[][22]={				"Race Mode",
+											"Test Mode",
 											"Display 4",
 											"Choose Watch 1",
 											"Choose Watch 2",

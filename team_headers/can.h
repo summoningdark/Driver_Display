@@ -36,10 +36,27 @@ void ClearMailBoxes();
 #define VARIABLE2_BOX	3
 #define VARIABLE3_BOX	4
 #define VARIABLE4_BOX	5
+#define CANCORDERHEART_BOX	6
+#define CANMOTORTEMP_BOX	7
+#define CAN12VBUS_BOX	8
+
 
 #define HEARTBEAT_ID 	0x0
 #define HEARTBEAT_BOX 	1
 
-extern can_variable_struct CANvars[4];
+#define CANCORDERHEART_SID		0x00
+#define CANCORDERHEART_TYPE		0x00
+#define CANCORDERHEART_OFFSET	0x00
+
+#define CANMOTORTEMP_SID		0x200 + 0x0B
+#define CANMOTORTEMP_TYPE		0x04
+#define CANMOTORTEMP_OFFSET		0x00
+
+#define CAN12VBUS_SID			0x200 + 0x08
+#define CAN12VBUS_TYPE			0x04
+#define CAN12VBUS_OFFSET		0x20
+
+
+extern can_variable_struct CANvars[7];
 
 #endif /* CAN_H_ */

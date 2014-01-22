@@ -12,7 +12,7 @@ struct ECAN_REGS ECanaShadow;
 
 #include "CANdbc.h"
 
-can_variable_struct CANvars[4];
+can_variable_struct CANvars[7];
 
 void CANSetup()
 {
@@ -41,6 +41,24 @@ void CANSetup()
 	CANvars[3].Offset = CANdbc[VAR4DEFAULT].Offset;
 	CANvars[3].New = 0;
 	memcpy(&CANvars[3].Name, &CANdbcNames[VAR4DEFAULT],22);
+	//CANvars[6] is always CANcorder heartbeat
+	CANvars[6].SID = CANCORDERHEART_SID;
+	CANvars[6].TypeCode = CANCORDERHEART_TYPE;
+	CANvars[6].Offset = CANCORDERHEART_OFFSET;
+	CANvars[6].New = 0;
+	memcpy(&CANvars[6].Name, "CANcorder Heartbeat",20);
+	//CANvars[4] is always motor temperature
+	CANvars[4].SID = CANMOTORTEMP_SID;
+	CANvars[4].TypeCode = CANMOTORTEMP_TYPE;
+	CANvars[4].Offset = CANMOTORTEMP_OFFSET;
+	CANvars[4].New = 0;
+	memcpy(&CANvars[4].Name, "Motor Temp",11);
+	//CANvars[5] is always 12V bus voltage
+	CANvars[5].SID = CAN12VBUS_SID;
+	CANvars[5].TypeCode = CAN12VBUS_TYPE;
+	CANvars[5].Offset = CAN12VBUS_OFFSET;
+	CANvars[5].New = 0;
+	memcpy(&CANvars[5].Name, "12V Bus Voltage",16);
 
 	InitECanaGpio();
 	InitECana();
@@ -124,6 +142,39 @@ void CANSetup()
 	ECanaShadow.CANME.bit.ME5 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM5  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL5  = 1;  		// Int.-Level MB#0  -> I1EN
+
+	//CANcorder heartbeat RECEIVE
+	ECanaMboxes.MBOX6.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX6.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX6.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX6.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX6.MSGID.bit.STDMSGID = CANCORDERHEART_SID;
+	ECanaShadow.CANMD.bit.MD6 = 1;			//receive
+	ECanaShadow.CANME.bit.ME6 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM6  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL6  = 1;  		// Int.-Level MB#0  -> I1EN
+
+	//Motor Temp RECEIVE
+	ECanaMboxes.MBOX7.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX7.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX7.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX7.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX7.MSGID.bit.STDMSGID = CANMOTORTEMP_SID;
+	ECanaShadow.CANMD.bit.MD7 = 1;			//receive
+	ECanaShadow.CANME.bit.ME7 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM7  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL7  = 1;  		// Int.-Level MB#0  -> I1EN
+
+	//12V Bus voltage RECEIVE
+	ECanaMboxes.MBOX8.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX8.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX8.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX8.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX8.MSGID.bit.STDMSGID = CAN12VBUS_SID;
+	ECanaShadow.CANMD.bit.MD8 = 1;			//receive
+	ECanaShadow.CANME.bit.ME8 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM8  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL8  = 1;  		// Int.-Level MB#0  -> I1EN
 
 	ECanaRegs.CANGAM.all = ECanaShadow.CANGAM.all;
 	ECanaRegs.CANGIM.all = ECanaShadow.CANGIM.all;
@@ -334,6 +385,30 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[3].data.U32 = ECanaMboxes.MBOX5.MDL.all;
 		CANvars[3].data.U64 = CANvars[3].data.U64 >> CANvars[3].Offset;
 		CANvars[3].New = 1;
+	break;
+
+	case CANCORDERHEART_BOX:
+		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDH.all;
+		CANvars[6].data.U64 = CANvars[6].data.U64 << 32;
+		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDL.all;
+		CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
+		CANvars[6].New = 1;
+	break;
+
+	case CANMOTORTEMP_BOX:
+		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDH.all;
+		CANvars[4].data.U64 = CANvars[4].data.U64 << 32;
+		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDL.all;
+		CANvars[4].data.U64 = CANvars[4].data.U64 >> CANvars[4].Offset;
+		CANvars[4].New = 1;
+	break;
+
+	case CAN12VBUS_BOX:
+		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDH.all;
+		CANvars[5].data.U64 = CANvars[5].data.U64 << 32;
+		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDL.all;
+		CANvars[5].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
+		CANvars[5].New = 1;
 	break;
   	}
 

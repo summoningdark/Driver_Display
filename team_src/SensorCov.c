@@ -27,7 +27,8 @@ stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
 #define VARMENU		8
 #define MANUALVAR	9
 #define RACEMODE	10
-#define DISPLAY4	11
+#define TESTMODE	11
+#define DISPLAY4	12
 
 //variables for menus
 #define NLINES 8
@@ -244,6 +245,12 @@ void SensorCovMeasure()
 			State = RACEMODE;
 			clear_screen(0);
 		break;
+		case MM_TESTMODE:
+		//clear stack
+		MenuStackp = 0;
+		State = TESTMODE;
+		clear_screen(0);
+		break;
 		case MM_DISPLAY4:
 			//clear stack
 			MenuStackp = 0;
@@ -302,7 +309,10 @@ void SensorCovMeasure()
 	break;
 
 	case RACEMODE:			//default state (race)
-			SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
+			if (DisplayRefresh)		//do initial screen drawing
+			{
+				SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
+			}
 			if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
 			{
 				DisplayRefresh=0;					//just redrew the display
@@ -324,6 +334,52 @@ void SensorCovMeasure()
 			{
 				State = RACEMODE;					//stay on this state
 			}
+	break;
+
+	case TESTMODE:									// test mode displays Variable 0 in medium font and 2 bar graphs
+		if (DisplayRefresh)		//do initial screen drawing
+		{
+			SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
+			draw_sprite(0,0,0,7);	//draw motor icon 0
+			draw_sprite(0,56,1,7);	//draw 12v battery icon 1
+		}
+
+		if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+		{
+			DisplayRefresh=0;					//just redrew the display
+			set_font(FontLarge);				//Medium font for test mode
+			set_cursor(0,20);					//center the value
+			PrintCANvariable(0, 0);				//update the display
+		}
+
+		if(CANvars[4].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+		{
+				//do percent bar for motor temp
+				//max motor temp is 100 so this is easy
+				status_bar(15,0,115,10,(int)CANvars[5].data.F32,2);
+
+		}
+
+		if(CANvars[5].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+		{
+			//do status bar for 12V (get from wavesculptor)
+			status_bar(15,56,115,63,(int)(CANvars[6].data.F32/.14),2);
+
+		}
+
+		if(GetButtonPress() == BTN_MENU)
+		{
+			DisplayRefresh = 1;					//Flag Display for update
+			MenuList = MainMenuText;			//point to main menu text
+			MenuStackp = 0;						//clear stack
+			Push(TESTMODE);						//make sure we come back here
+			Push(MAINMENU);						//push main menu state
+			State = MENUSETUP;					//go to menu setup
+		}
+		else
+		{
+			State = TESTMODE;					//stay on this state
+		}
 	break;
 
 	case DISPLAY4:			//Display 4 with descriptions
@@ -373,11 +429,11 @@ void SensorCovMeasure()
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			case BTN_SELECT:		//this button increments the index of the highlighted variable
-				if (++d4N[d4S] == 4) d4N[d4S] = 0;
+				if (++d4N[d4S] == 6) d4N[d4S] = 0;
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			case BTN_BACK:			//this button decrements the index of the highlighted variable
-				if (--d4N[d4S] == -1) d4N[d4S] = 3;
+				if (--d4N[d4S] == -1) d4N[d4S] = 5;
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			}

@@ -92,6 +92,7 @@ void line(uint8_t S_R, int8_t x1, int8_t y1, int8_t x2, int8_t y2);
 void circle(uint8_t S_R, int8_t x, int8_t y, int8_t r);
 void draw_block(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t data);
 void box(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
+void status_bar(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t percent, uint8_t direction);
 void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, uint8_t* data);
 void draw_sprite(uint8_t x, uint8_t y, uint8_t n, uint8_t mode);
 
@@ -129,9 +130,60 @@ uint8_t aux_font=0;	//which font to use 0=default, 1=aux
 
 //this include file stores all the relevant font data.
 #include "font.h"
+#include "aux_font.h"
 #include "R24x40_font.h"
 
 //===============================================================these functions are updated=========================================================================
+void status_bar(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t percent, uint8_t direction)
+{
+	//This function draws a box with corners (x1,y1) and (x2,y2) and fills percent of it in from the top, right, left, bottom for direction = 0, 1, 2, 3
+
+	//check for reasonable values
+	if(x1<128 && x2<128 && y1<64 && y2<64 && percent <101)
+	{
+		uint8_t f,t;
+		uint16_t stop;
+		//make sure x1,y1 is upper left corner
+		if(x2 < x1)
+		{
+			t = x1;
+			x1 = x2;
+			x2 = t;
+		}
+
+		if(y2<y2)
+		{
+			t = y1;
+			y1 = y2;
+			y2 = t;
+		}
+		//draw box outline
+		box(x1,y1,x2,y2);
+		if (reverse) f=0x00; else f=0xFF;		//fill byte
+		switch (direction)
+		{
+		case 0:	//fill from top
+			 stop = (y2-y1)*percent;
+			 stop/=100;
+			 draw_block(x1,y1,x2,y1+(uint8_t)stop,f);
+		break;
+		case 1: //fill from right
+			 stop = (x2-x1)*percent;
+			 stop/=100;
+			 draw_block(x2-(uint8_t)stop,y1,x2,y2,f);
+			 break;
+		case 2: //fill from left
+			 stop = (x2-x1)*percent;
+			 stop/=100;
+			 draw_block(x1,y1,x1+(uint8_t)stop,y2,f);
+		break;
+		default: //fill from bottom
+			stop = (y2-y1)*percent;
+			stop/=100;
+			draw_block(x1,y2-(uint8_t)stop,x2,y2,f);
+		}
+	}
+}
 void LCDSplash(uint16_t ms)
 {
 	uint16_t i,A;
