@@ -124,6 +124,7 @@ uint8_t CR_LF = 1;	//should CR have an automatic LF
 uint8_t font_bytes;	//# of bytes in a character (5 for default font)
 uint8_t font_w;		//width of a character in pixels (5 for default font)
 uint8_t font_h;		//height of a character in pixels (8 for default font)
+uint8_t font_sw;	//font short width for punctuation
 uint8_t font_space;	//horizontal space to leave between characters
 uint8_t aux_font=0;	//which font to use 0=default, 1=aux
 
@@ -284,8 +285,9 @@ void set_font(const uint8_t *pNewFont)
 	{
 		pFont = &Font[0];		//get pointer to default font
 		font_w = *pFont;		//get font width from font array	
-		font_h = *pFont + 1;		//get font height from font array
-		font_space = *pFont + 2;	//get font space from font array
+		font_h = *(pFont + 1);		//get font height from font array
+		font_sw = *(pFont + 2);		//get font short width ( for ! ' , . : ; ` characters)
+		font_space = *(pFont + 3);	//get font space from font array
 		font_bytes = font_h/8;		//8 pixels/byte
 		if (font_h % 8 != 0)
 			font_bytes++;		//partial rows count too
@@ -296,7 +298,8 @@ void set_font(const uint8_t *pNewFont)
 		pFont = pNewFont;		//get pointer to new font
 		font_w = *pFont;		//get font width from font array	
 		font_h = *(pFont + 1);		//get font height from font array
-		font_space = *(pFont + 2);	//get font space from font array
+		font_sw = *(pFont + 2);		//get font short width ( for ! ' , . : ; ` characters)
+		font_space = *(pFont + 3);	//get font space from font array
 		font_bytes = font_h/8;		//8 pixels/byte
 		if (font_h % 8 != 0)
 			font_bytes++;		//partial rows count too
@@ -354,27 +357,27 @@ void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 			//must treat '+' '-' '.' separately
 			if(txt == 43)	// '+'
 			{
-				text_array_offset = 10 * font_bytes + 3;
+				text_array_offset = 10 * font_bytes + 4;
 			}
 			else if (txt == 45) // '-'
 			{
-				text_array_offset = 11 * font_bytes + 3;
+				text_array_offset = 11 * font_bytes + 4;
 			}
 			else if (txt == 46) // '.'
 			{
-				text_array_offset = 12 * font_bytes + 3;
+				text_array_offset = 12 * font_bytes + 4;
 			}
 			else
 			{
 				if ((txt<48) || (txt>57)) txt = 48;				// these are the numerals 0-9
-				text_array_offset = (txt - 48) * font_bytes+3;	// txt-48 is the ascii offset to '0', font_bytes is the # of bytes/character, and 3 for font width,height,space which are stores at the beginning of the array
+				text_array_offset = (txt - 48) * font_bytes+4;	// txt-48 is the ascii offset to '0', font_bytes is the # of bytes/character, and 3 for font width,height,short width,space which are stores at the beginning of the array
 			}
 		}
 		else
 		{
 			//coerce txt to valid printable character
 			if ((txt<32) || (txt>126)) txt = 32;
-			text_array_offset = (txt - 32) * font_bytes+3;	// txt-32 is the ascii offset to 'space', font_bytes is the # of bytes/character, and 3 for font width,height,space which are stores at the beginning of the array
+			text_array_offset = (txt - 32) * font_bytes+4;	// txt-32 is the ascii offset to 'space', font_bytes is the # of bytes/character, and 3 for font width,height,short width,space which are stores at the beginning of the array
 		}
 
 		//fetch font data from program memory
@@ -389,7 +392,18 @@ void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 		if ((txt == 33) ||(txt == 39) ||(txt == 44) ||(txt == 46) ||(txt == 58) ||(txt == 59) ||(txt == 96) )
 		{
 			bitblt(x_offset, y_offset, font_w, font_h, font_mode, temp_buf);
-			x_offset+=(font_w/4)+font_space;
+			x_offset+=font_sw;
+			f=0x00;
+			if (reverse==1)
+			{
+				f=0xFF;
+			}
+			if (inv)
+			{
+				f = ~f;
+			}
+			draw_block(x_offset, y_offset, x_offset+font_space, y_offset+font_h-1,f);	//erase the block
+			x_offset +=	font_space;
 		}
 		else
 		{

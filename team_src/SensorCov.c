@@ -80,19 +80,10 @@ void SensorCovInit()
 
 	//set up menus
 	MenuStackp = 0;
-	//CONFIG ADC
-	//adcinit();
 
-	//CONFIG GP_BUTTON
-	//ConfigGPButton();
-
-	//CONFIG LEDS
-	//led 0
-	//ConfigLED0();
-	//led 1
-	//ConfigLED1();
-	//CONFIG 12V SWITCH
-	//Config12V();
+	//testing
+	CANvars[4].data.F32 = 37.4;			//testing motor temp
+	CANvars[5].data.F32 = 12.6;			//testing 12V bus
 	Menu_watch = StartStopWatch(700000);
 	conv_watch = StartStopWatch(1000);
 }
@@ -340,15 +331,14 @@ void SensorCovMeasure()
 		if (DisplayRefresh)		//do initial screen drawing
 		{
 			SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
-			draw_sprite(0,0,0,7);	//draw motor icon 0
-			draw_sprite(0,56,1,7);	//draw 12v battery icon 1
+			draw_sprite(0,0,1,7);	//draw motor icon 1
+			draw_sprite(0,54,0,7);	//draw 12v battery icon 0
 		}
 
 		if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
 		{
-			DisplayRefresh=0;					//just redrew the display
 			set_font(FontLarge);				//Medium font for test mode
-			set_cursor(0,20);					//center the value
+			set_cursor(0,23);					//center the value
 			PrintCANvariable(0, 0);				//update the display
 		}
 
@@ -356,14 +346,15 @@ void SensorCovMeasure()
 		{
 				//do percent bar for motor temp
 				//max motor temp is 100 so this is easy
-				status_bar(15,0,115,10,(int)CANvars[5].data.F32,2);
+				status_bar(15,0,115,10,(int)CANvars[4].data.F32,2);
 
 		}
 
 		if(CANvars[5].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
 		{
+			DisplayRefresh=0;					//just redrew the display
 			//do status bar for 12V (get from wavesculptor)
-			status_bar(15,56,115,63,(int)(CANvars[6].data.F32/.14),2);
+			status_bar(15,54,115,63,(int)(CANvars[5].data.F32/.14),2);
 
 		}
 
@@ -399,6 +390,7 @@ void SensorCovMeasure()
 					print_char(0x0A,0,0);													//LF
 					//print variable value
 					PrintCANvariable(d4N[tmp], 0);
+					clear_to_end();															//clear the rest of the line (entries may not all be the same length)
 					print_char(0x0D,0,0);													//CR
 					print_char(0x0A,0,0);													//LF
 				}
@@ -408,7 +400,7 @@ void SensorCovMeasure()
 					print_char(0x0A,0,0);													//LF
 				}
 			}
-
+			DisplayRefresh = 0;						//by the time we get here, the display is redrawn
 			State = DISPLAY4;						//default come back to this state
 			switch(GetButtonPress())
 			{
