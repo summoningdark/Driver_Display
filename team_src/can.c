@@ -8,6 +8,9 @@
 
 unsigned int mask;
 stopwatch_struct* can_watch;
+stopwatch_struct* cancorder_watch;	//stopwatch for cancorder heartbeat timeout
+stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
+
 struct ECAN_REGS ECanaShadow;
 
 #include "CANdbc.h"
@@ -192,6 +195,8 @@ void CANSetup()
     PieCtrlRegs.PIEIER9.bit.INTx6= 1;
 
     can_watch = StartStopWatch(SENDCAN_STOPWATCH);
+    cancorder_watch = StartStopWatch(CANCORDER_TIMEOUT);
+    tritium_watch = StartStopWatch(TRITIUM_TIMEOUT);
 }
 
 void ClearMailBoxes()
@@ -388,6 +393,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	break;
 
 	case CANCORDERHEART_BOX:
+		StopWatchRestart(cancorder_watch);
 		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDH.all;
 		CANvars[6].data.U64 = CANvars[6].data.U64 << 32;
 		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDL.all;
@@ -396,6 +402,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	break;
 
 	case CANMOTORTEMP_BOX:
+		StopWatchRestart(tritium_watch);
 		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDH.all;
 		CANvars[4].data.U64 = CANvars[4].data.U64 << 32;
 		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDL.all;
@@ -404,6 +411,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	break;
 
 	case CAN12VBUS_BOX:
+		StopWatchRestart(tritium_watch);
 		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDH.all;
 		CANvars[5].data.U64 = CANvars[5].data.U64 << 32;
 		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDL.all;

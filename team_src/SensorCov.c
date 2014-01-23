@@ -15,6 +15,8 @@ ops_struct ops_temp;
 data_struct data_temp;
 stopwatch_struct* conv_watch;
 stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
+extern stopwatch_struct* cancorder_watch;	//stopwatch for cancorder heartbeat timeout
+extern stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
 
 //Defines for States
 #define CV1			1
@@ -75,7 +77,7 @@ void SensorCovInit()
 	//LCD init
 	LCDinit();
 	LCDSplash(1000);
-	SetLEDs(IND1RED, IND1MASK);				//start with red to indicate no CANcorder
+	SetLEDs(IND1RED | IND2RED, IND1MASK | IND2MASK);				//start with red to indicate no CANcorder, no Tritium
 	set_font(Font);
 
 	//set up menus
@@ -84,7 +86,7 @@ void SensorCovInit()
 	//testing
 	CANvars[4].data.F32 = 37.4;			//testing motor temp
 	CANvars[5].data.F32 = 12.6;			//testing 12V bus
-	Menu_watch = StartStopWatch(700000);
+	Menu_watch = StartStopWatch(700000L);
 	conv_watch = StartStopWatch(1000);
 }
 
@@ -103,6 +105,17 @@ void SensorCovMeasure()
 	StopWatchRestart(conv_watch);
 	int tmp;
 	can_variable_list_struct tmpCANvar;
+
+	//always check for cancorder and tritium status
+	if (isStopWatchComplete(cancorder_watch))
+		SetLEDs(IND1RED,IND1MASK);
+	else
+		SetLEDs(IND1GREEN,IND1MASK);
+
+	if (isStopWatchComplete(tritium_watch))
+		SetLEDs(IND2RED,IND2MASK);
+	else
+		SetLEDs(IND2GREEN,IND2MASK);
 
 	switch(State)
 	{

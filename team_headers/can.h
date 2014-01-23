@@ -56,6 +56,8 @@ void ClearMailBoxes();
 #define CAN12VBUS_TYPE			0x04
 #define CAN12VBUS_OFFSET		0x20
 
+#define CANCORDER_TIMEOUT		150000L
+#define TRITIUM_TIMEOUT			100000L
 
 extern can_variable_struct CANvars[7];
 
