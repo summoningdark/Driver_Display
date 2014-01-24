@@ -663,28 +663,38 @@ void PrintCANvariable(uint8_t N, uint8_t reduced)
 	//create string from variable
 	switch(TempVar.TypeCode)
 	{
-	case 0:			//int16
+	case 0:			//int8
+		if(TempVar.data.U16 & 0x0080)					//check sign bit in bit position 8
+			sprintf(text,"%d",(int)(0xFF00 | TempVar.data.U16));	//int8 is negative, sign extend the int16
+		else
+			sprintf(text,"%d",(int)(0x00FF & TempVar.data.U16));	//int8 is positive, clear the upper 8 bits
+
+	break;
+	case 1:			//uint8
+		sprintf(text,"%u",(0x00FF & TempVar.data.U16));
+	break;
+	case 2:			//int16
 		sprintf(text,"%d",TempVar.data.I16);
 	break;
-	case 1:			//uint16
+	case 3:			//uint16
 		sprintf(text,"%u",TempVar.data.U16);
 	break;
-	case 2:			//int32
+	case 4:			//int32
 		sprintf(text,"%ld",TempVar.data.I32);
 	break;
-	case 3:			//uint32
+	case 5:			//uint32
 		sprintf(text,"%lu",TempVar.data.U32);
 	break;
-	case 4:			//float 32
+	case 6:			//float 32
 			sprintf(text,"%.2f",TempVar.data.F32);
 	break;
-	case 5:			//int64
+	case 7:			//int64
 			sprintf(text,"%lld",TempVar.data.I64);
 	break;
-	case 6:			//uint64
+	case 8:			//uint64
 			sprintf(text,"%llu",TempVar.data.U64);
 	break;
-	case 7:			//float64
+	case 9:			//float64
 			sprintf(text,"%.2f",TempVar.data.F64);
 	break;
 	}

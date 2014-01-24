@@ -15,7 +15,7 @@ struct ECAN_REGS ECanaShadow;
 
 #include "CANdbc.h"
 
-can_variable_struct CANvars[7];
+can_variable_struct CANvars[8];
 
 void CANSetup()
 {
@@ -62,6 +62,12 @@ void CANSetup()
 	CANvars[5].Offset = CAN12VBUS_OFFSET;
 	CANvars[5].New = 0;
 	memcpy(&CANvars[5].Name, "12V Bus Voltage",16);
+	//CANvars[7] is always Tritium bus voltage
+	CANvars[7].SID = TRITIUMVBUS_SID;
+	CANvars[7].TypeCode = TRITIUMVBUS_TYPE;
+	CANvars[7].Offset = TRITIUMVBUS_OFFSET;
+	CANvars[7].New = 0;
+	memcpy(&CANvars[7].Name, "Tritium Bus Voltage",20);
 
 	InitECanaGpio();
 	InitECana();
@@ -178,6 +184,17 @@ void CANSetup()
 	ECanaShadow.CANME.bit.ME8 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM8  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL8  = 1;  		// Int.-Level MB#0  -> I1EN
+
+	//Tritium Bus voltage RECEIVE
+	ECanaMboxes.MBOX9.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX9.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX9.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX9.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX9.MSGID.bit.STDMSGID = TRITIUMVBUS_SID;
+	ECanaShadow.CANMD.bit.MD9 = 1;			//receive
+	ECanaShadow.CANME.bit.ME9 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM9  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL9  = 1;  		// Int.-Level MB#0  -> I1EN
 
 	ECanaRegs.CANGAM.all = ECanaShadow.CANGAM.all;
 	ECanaRegs.CANGIM.all = ECanaShadow.CANGIM.all;
@@ -362,7 +379,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		//todo USER: Setup other reads
 	case VARIABLE1_BOX:
 		CANvars[0].data.U32 = ECanaMboxes.MBOX2.MDH.all;
-		CANvars[0].data.U64 = CANvars[0].data.U64 << 32;
+		CANvars[0].data.U64 = CANvars[0].data.U64 << 32L;
 		CANvars[0].data.U32 = ECanaMboxes.MBOX2.MDL.all;
 		CANvars[0].data.U64 = CANvars[0].data.U64 >> CANvars[0].Offset;
 		CANvars[0].New = 1;
@@ -370,7 +387,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 
 	case VARIABLE2_BOX:
 		CANvars[1].data.U32 = ECanaMboxes.MBOX3.MDH.all;
-		CANvars[1].data.U64 = CANvars[1].data.U64 << 32;
+		CANvars[1].data.U64 = CANvars[1].data.U64 << 32L;
 		CANvars[1].data.U32 = ECanaMboxes.MBOX3.MDL.all;
 		CANvars[1].data.U64 = CANvars[1].data.U64 >> CANvars[1].Offset;
 		CANvars[2].New = 1;
@@ -378,7 +395,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 
 	case VARIABLE3_BOX:
 		CANvars[2].data.U32 = ECanaMboxes.MBOX4.MDH.all;
-		CANvars[2].data.U64 = CANvars[2].data.U64 << 32;
+		CANvars[2].data.U64 = CANvars[2].data.U64 << 32L;
 		CANvars[2].data.U32 = ECanaMboxes.MBOX4.MDL.all;
 		CANvars[2].data.U64 = CANvars[2].data.U64 >> CANvars[2].Offset;
 		CANvars[2].New = 1;
@@ -386,7 +403,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 
 	case VARIABLE4_BOX:
 		CANvars[3].data.U32 = ECanaMboxes.MBOX5.MDH.all;
-		CANvars[3].data.U64 = CANvars[3].data.U64 << 32;
+		CANvars[3].data.U64 = CANvars[3].data.U64 << 32L;
 		CANvars[3].data.U32 = ECanaMboxes.MBOX5.MDL.all;
 		CANvars[3].data.U64 = CANvars[3].data.U64 >> CANvars[3].Offset;
 		CANvars[3].New = 1;
@@ -395,7 +412,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	case CANCORDERHEART_BOX:
 		StopWatchRestart(cancorder_watch);
 		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDH.all;
-		CANvars[6].data.U64 = CANvars[6].data.U64 << 32;
+		CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
 		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDL.all;
 		CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
 		CANvars[6].New = 1;
@@ -404,21 +421,29 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	case CANMOTORTEMP_BOX:
 		StopWatchRestart(tritium_watch);
 		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDH.all;
-		CANvars[4].data.U64 = CANvars[4].data.U64 << 32;
+		CANvars[4].data.U64 = CANvars[4].data.U64 << 32L;
 		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDL.all;
 		CANvars[4].data.U64 = CANvars[4].data.U64 >> CANvars[4].Offset;
 		CANvars[4].New = 1;
 	break;
 
 	case CAN12VBUS_BOX:
-		StopWatchRestart(tritium_watch);
 		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDH.all;
-		CANvars[5].data.U64 = CANvars[5].data.U64 << 32;
+		CANvars[5].data.U64 = CANvars[5].data.U64 << 32L;
 		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDL.all;
 		CANvars[5].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
 		CANvars[5].New = 1;
 	break;
-  	}
+
+	case TRITIUMVBUS_BOX:
+			StopWatchRestart(tritium_watch);
+			CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDH.all;
+			CANvars[7].data.U64 = CANvars[5].data.U64 << 32L;
+			CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDL.all;
+			CANvars[7].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
+			CANvars[7].New = 1;
+		break;
+  }
 
 
   	//To receive more interrupts from this PIE group, acknowledge this interrupt

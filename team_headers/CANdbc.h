@@ -7,7 +7,7 @@
 
 #include "data.h"
 
-#define NUMCANVARS 4
+#define NUMCANVARS 10
 
 #define VAR1DEFAULT 0
 #define VAR2DEFAULT 1
@@ -20,16 +20,28 @@
 //the variable is, and the last member(Offset) is bow many bits from the LSB the variable starts.
 
 const can_variable_list_struct CANdbc[NUMCANVARS]={	{0,0,0},
-													{1,0,0},
-													{2,0,0},
-													{3,0,0}
+							{1,1,5},
+							{2,2,2},
+							{2,3,0},
+							{2,4,32},
+							{2,5,8},
+							{2,6,23},
+							{2,7,0},
+							{2,8,0},
+							{3,9,0}
 };
 
 //always end the CANdbcNames array with an empty string, the menu function needs this to know how many entries there are
 //note only 21 characters are printable on a line
-const char CANdbcNames[][22]={	"Variable 1",
-											"Variable 2",
-											"Variable 3",
-											"Variable 4",
-											"",
+const char CANdbcNames[NUMCANVARS+1][22]={	"int8 offset 0",
+				"uint8 offset 5",
+				"int16 offset 2",
+				"uint16 offset 0",
+				"int32 offset 32",
+				"uint32 offset 8",
+				"float32 offset 23",
+				"int64 offset 0",
+				"uint64 offset 0",
+				"float64 offset 0",
+				"",
 };
