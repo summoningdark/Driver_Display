@@ -7,6 +7,7 @@
 
 #include "all.h"
 #include "menus.h"
+#include <stdio.h>
 
 extern const char CANdbcNames[][22];
 extern const can_variable_list_struct CANdbc[];
@@ -27,10 +28,13 @@ extern stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
 #define MENUCHOICE	6
 #define MAINMENU	7
 #define VARMENU		8
-#define MANUALVAR	9
-#define RACEMODE	10
-#define TESTMODE	11
-#define DISPLAY4	12
+#define MANUALVAR1	9
+#define MANUALVAR2	10
+#define MANUALVAR3	11
+#define MANUALVAR4	12
+#define RACEMODE	13
+#define TESTMODE	14
+#define DISPLAY4	15
 
 //variables for menus
 #define NLINES 8
@@ -100,11 +104,11 @@ void LatchStruct()
 
 void SensorCovMeasure()
 {
-	static int State=RACEMODE, d4S=0, DisplayRefresh = 1;
+	static int State=RACEMODE, d4S=0, DisplayRefresh = 1,ManID=0,ManDigit=2,ManOffset=0;
 	static int d4N[4]={0,1,2,3};
 	StopWatchRestart(conv_watch);
 	int tmp;
-	can_variable_list_struct tmpCANvar;
+	static can_variable_list_struct tmpCANvar;
 
 	//always check for cancorder and tritium status
 	if (isStopWatchComplete(cancorder_watch))
@@ -112,10 +116,28 @@ void SensorCovMeasure()
 	else
 		SetLEDs(IND1GREEN,IND1MASK);
 
-	if (isStopWatchComplete(tritium_watch))
+
+	if (CANvars[7].data.F32 < 50)
+	{
 		SetLEDs(IND2RED,IND2MASK);
-	else
+	}
+	else if (CANvars[7].data.F32 < 350)
+	{
+		SetLEDs(IND2YELLOW,IND2MASK);
+	}
+	else if (CANvars[7].data.F32 < 500)
+	{
 		SetLEDs(IND2GREEN,IND2MASK);
+	}
+	else
+	{
+		SetLEDs(IND2OFF,IND2MASK);
+	}
+
+//	if (isStopWatchComplete(tritium_watch))
+//		SetLEDs(IND2RED,IND2MASK);
+//	else
+//		SetLEDs(IND2GREEN,IND2MASK);
 
 	switch(State)
 	{
@@ -299,17 +321,218 @@ void SensorCovMeasure()
 			State = MENUSETUP;			//setup menu
 		break;
 		case VM_MANUAL:
-			State = MANUALVAR;
+			ManID=0;					//set up manual entry variables
+			ManOffset=0;
+			ManDigit=2;
+			State = MANUALVAR1;			//go directly to manual variable set
 		break;
 		}
 	break;
 
-	case MANUALVAR:			//this does up a manual entry of a watch variable
-		print_cstr("Not Yet Implemented",0,0);
-		delay_ms(1500);
-		Pop();				//pop the CVn
-		State = Pop();
-		clear_screen(0);
+	case MANUALVAR1:			//this does up a manual entry of a watch variable, CAN ID part
+		if(MenuReturn == -1)
+		{
+			State = Pop();
+		}
+		else
+		{
+			SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+			//first pick the CAN ID, this is done using up/down to change the highlighted hex digit, and back/select to select the digit
+			//if you back off the most significant digit, the process is considered canceled, if you select off the least significant digit the process is considered complete
+			set_font(Font);
+			set_cursor(0,0);
+			print_cstr("Choose CAN ID",0,0);
+			set_font(FontLarge);				//Medium font for test mode
+			set_cursor(0,23);					//center the value
+			print_cstr("0x",0,0);				//print hex prefix
+			//print the current values, highlight the selected one
+			tmp = ((ManID & 0x0F00)>>8)+48;	//get first digit
+			if (tmp>57) tmp += 7;				//need this to go from 9 to A
+			print_char(tmp,(ManDigit==2),0);
+			tmp = ((ManID & 0x00F0)>>4)+48;		//get second digit
+			if (tmp>57) tmp += 7;				//need this to go from 9 to A
+			print_char(tmp,(ManDigit==1),0);
+			tmp = (ManID & 0x000F) + 48;		//get last digit
+			if (tmp>57) tmp += 7;				//need this to go from 9 to A
+			print_char(tmp,(ManDigit==0),0);
+			//read the buttons and decide what to do
+			switch(GetButtonPress())
+			{
+			case BTN_BACK:	//move highlighted digit 1 to the left. if they go off the end, cancel
+				if(++ManDigit == 3)
+				{
+					MenuReturn = -1;
+					State = Pop();
+					clear_screen(0);
+				}
+			break;
+			case BTN_UP:	//increment the value of the current digit, if it goes above F, set to 0
+				tmp = (ManID >> (ManDigit*4)) & 0x000F;		//get current digit
+				tmp = (++tmp) & 0x0F;						//increment
+				ManID &= ~(0xF << (ManDigit*4));			//clear the current digit
+				ManID |= (tmp << (ManDigit*4));				//replace with new value
+			break;
+			case BTN_DOWN:	//decrement the value of the current digit, if it goes below 0, set to F
+				tmp = (ManID >> (ManDigit*4)) & 0x000F;		//get current digit
+				tmp = (--tmp) & 0x0F;						//decrement
+				ManID &= ~(0xF << (ManDigit*4));			//clear the current digit
+				ManID |= (tmp << (ManDigit*4));				//replace with new value
+			break;
+			case BTN_SELECT://move highlighted digit 1 to the right. if they go off the end, go to the next phase
+				if(--ManDigit == -1)
+				{
+					tmpCANvar.SID = ManID & 0x07FF;		//mask all but 11-bits
+					Push(MANUALVAR2);					//set up menu to return to MANUALVAR2
+					MenuList = VariableTypeText;		//point to the list of variable types
+					State = MENUSETUP;					//setup menu
+				}
+			break;
+			case BTN_MENU:	//this cancels
+				MenuReturn = -1;
+				State = Pop();
+				clear_screen(0);
+			}
+		}
+	break;
+
+	case MANUALVAR2:			//this does up a manual entry of a watch variable, CAN variable type part
+		if(MenuReturn == -1)
+		{
+			State = Pop();
+		}
+		else
+		{
+			tmpCANvar.TypeCode = MenuReturn;
+			ManDigit = 1;						//CAN offset is only 2 digits, make sure we start on a valid one
+			State = MANUALVAR3;
+		}
+	break;
+
+	case MANUALVAR3:			//this does up a manual entry of a watch variable, CAN variable offset part
+		if(MenuReturn == -1)
+		{
+			State = Pop();
+		}
+		else
+		{
+			SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+			//last pick the CAN offset, this is done using up/down to change the highlighted hex digit, and back/select to select the digit
+			//if you back off the most significant digit, the process is considered canceled, if you select off the least significant digit the process is considered complete
+			set_font(Font);
+			set_cursor(0,0);
+			print_cstr("Choose CAN Offset in bits",0,0);
+			set_font(FontLarge);				//Medium font for test mode
+			set_cursor(0,23);					//center the value
+			print_cstr("0x",0,0);				//print hex prefix
+			//print the current values, highlight the selected one
+			tmp = ((ManOffset & 0x00F0)>>4)+48;	//get first digit
+			if (tmp>57) tmp += 7;				//need this to go from 9 to A
+			print_char(tmp,(ManDigit==1),0);
+			tmp = (ManOffset & 0x000F) + 48;		//get last digit
+			if (tmp>57) tmp += 7;				//need this to go from 9 to A
+			print_char(tmp,(ManDigit==0),0);
+			//read the buttons and decide what to do
+			switch(GetButtonPress())
+			{
+			case BTN_BACK:	//move highlighted digit 1 to the left. if they go off the end, cancel
+				if(++ManDigit == 2)
+				{
+					MenuReturn = -1;
+					State = Pop();
+					clear_screen(0);
+				}
+			break;
+			case BTN_UP:	//increment the value of the current digit, if it goes above F, set to 0
+				tmp = (ManOffset >> (ManDigit*4)) & 0x000F;		//get current digit
+				tmp = (++tmp) & 0x0F;						//increment
+				ManOffset &= ~(0xF << (ManDigit*4));			//clear the current digit
+				ManOffset |= (tmp << (ManDigit*4));				//replace with new value
+			break;
+			case BTN_DOWN:	//decrement the value of the current digit, if it goes below 0, set to F
+				tmp = (ManOffset >> (ManDigit*4)) & 0x000F;		//get current digit
+				tmp = (--tmp) & 0x0F;						//decrement
+				ManOffset &= ~(0xF << (ManDigit*4));			//clear the current digit
+				ManOffset |= (tmp << (ManDigit*4));				//replace with new value
+			break;
+			case BTN_SELECT:	//move highlighted digit 1 to the right. if they go off the end, go to the next phase
+				if(--ManDigit == -1)
+				{
+					tmpCANvar.Offset = ManOffset & 0x003F;		//max offset is 63 bits
+					clear_screen(0);
+					State = MANUALVAR4;							//go to confirmation screen
+				}
+			break;
+			case BTN_MENU:	//this cancels
+				MenuReturn = -1;
+				State = Pop();
+				clear_screen(0);
+			}
+		}
+	break;
+
+	case MANUALVAR4:
+		if(MenuReturn == -1)
+		{
+			State = Pop();
+		}
+		else
+		{
+			SetLEDs(BTN_BACK_RED | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+			set_font(Font);			//small font
+			set_cursor(0,0);
+			print_cstr("Manual Set Variable",0,0);
+			print_char(0x0D,0,0);													//CR
+			print_char(0x0A,0,0);													//LF
+			print_cstr("CAN ID: 0x",0,0);
+			tmp = ((tmpCANvar.SID >> 8) & 0x000F) + 48;
+			if (tmp>57) tmp += 7;
+			print_char(tmp,0,0);
+			tmp = ((tmpCANvar.SID >> 4) & 0x000F) + 48;
+			if (tmp>57) tmp += 7;
+			print_char(tmp,0,0);
+			tmp = (tmpCANvar.SID & 0x000F) + 48;
+			if (tmp>57) tmp += 7;
+			print_char(tmp,0,0);
+			print_char(0x0D,0,0);													//CR
+			print_char(0x0A,0,0);													//LF
+			print_cstr("Variable Type: ",0,0);
+			print_cstr(&VariableTypeText[tmpCANvar.TypeCode][0],0,0);
+			print_char(0x0D,0,0);													//CR
+			print_char(0x0A,0,0);													//LF
+			print_cstr("Variable Offset: 0x",0,0);
+			tmp = ((tmpCANvar.Offset >> 4) & 0x000F) + 48;
+			if (tmp>57) tmp += 7;
+			print_char(tmp,0,0);
+			tmp = (tmpCANvar.Offset & 0x000F) + 48;
+			if (tmp>57) tmp += 7;
+			print_char(tmp,0,0);
+			print_char(0x0D,0,0);												//CR
+			print_char(0x0A,0,0);													//LF
+			print_cstr("Back = Cancel",0,0);
+			print_char(0x0D,0,0);												//CR
+			print_char(0x0A,0,0);												//LF
+			print_cstr("Select = OK",0,0);
+
+			switch(GetButtonPress())
+			{
+			case BTN_BACK:	//cancel
+				MenuReturn = -1;
+				State = Pop();
+				clear_screen(0);
+			break;
+			case BTN_SELECT:	//accept
+				tmp = Pop();						//get which CVn the user wanted
+				SetCANmonitor(tmp,  tmpCANvar);		//for code efficiency the State variable CVn = n
+				sprintf(CANvars[tmp-1].Name,"%s@%#03x OF:%#02x",VariableTypeText[tmpCANvar.TypeCode],tmpCANvar.SID,tmpCANvar.Offset);
+				State = Pop();						//pop the next state
+				clear_screen(0);					//give the next state a clear screen to work with
+			break;
+			case BTN_MENU:	//cancels
+				MenuReturn = -1;
+				State = Pop();
+				clear_screen(0);
+			}
+		}
 	break;
 
 	case RACEMODE:			//default state (race)

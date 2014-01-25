@@ -36,4 +36,17 @@ const char VariableMenuText[][22]={
 											""
 };
 
+const char VariableTypeText[][22]={	"I8",
+									"U8",
+									"I16",
+									"U16",
+									"I32",
+									"U32",
+									"F32",
+									"I64",
+									"U64",
+									"F64",
+									""
+};
+
 #endif /* MENUS_H_ */

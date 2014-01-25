@@ -19,16 +19,16 @@
 //with the first member(SID) being the CAN ID the variable is transmitted on, the second member(TypeCode) indicates what type
 //the variable is, and the last member(Offset) is bow many bits from the LSB the variable starts.
 
-const can_variable_list_struct CANdbc[NUMCANVARS]={	{0,0,0},
-							{1,1,5},
-							{2,2,2},
-							{2,3,0},
-							{2,4,32},
-							{2,5,8},
-							{2,6,23},
-							{2,7,0},
-							{2,8,0},
-							{3,9,0}
+const can_variable_list_struct CANdbc[NUMCANVARS]={	{1,0,0},
+							{2,1,5},
+							{3,2,2},
+							{4,3,0},
+							{5,4,32},
+							{6,5,8},
+							{7,6,23},
+							{8,7,0},
+							{9,8,0},
+							{10,9,0}
 };
 
 //always end the CANdbcNames array with an empty string, the menu function needs this to know how many entries there are

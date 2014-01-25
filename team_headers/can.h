@@ -30,7 +30,7 @@ void FillSendCAN(unsigned int Mbox);
 void ClearMailBoxes();
 
 //todo USER: DEFINE IDs and mailboxes for output
-#define COMMAND_ID 		0x1
+
 #define COMMAND_BOX 	0
 #define VARIABLE1_BOX	2
 #define VARIABLE2_BOX	3
@@ -41,8 +41,9 @@ void ClearMailBoxes();
 #define CAN12VBUS_BOX	8
 #define TRITIUMVBUS_BOX 9
 
+#define COMMAND_ID 		0x1
+#define HEARTBEAT_ID 	0xff
 
-#define HEARTBEAT_ID 	0x0
 #define HEARTBEAT_BOX 	1
 
 #define CANCORDERHEART_SID		0x96
@@ -53,7 +54,7 @@ void ClearMailBoxes();
 #define CANMOTORTEMP_TYPE		0x04
 #define CANMOTORTEMP_OFFSET		0x00
 
-#define CAN12VBUS_SID			0x000
+#define CAN12VBUS_SID			0x100
 #define CAN12VBUS_TYPE			0x04
 #define CAN12VBUS_OFFSET		0x00
 

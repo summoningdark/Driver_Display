@@ -384,7 +384,7 @@ void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 		for(j=0;j<font_bytes;j++)
 		{
 			temp_buf[j] = *(pFont+text_array_offset+j);
-			if (inv) temp_buf[j] = ~temp_buf[j];
+			if (inv) temp_buf[j] = ~temp_buf[j] & 0x00FF;
 		}
 
 		//bitblt it

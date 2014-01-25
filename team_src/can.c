@@ -19,6 +19,7 @@ can_variable_struct CANvars[8];
 
 void CANSetup()
 {
+	int i;
 
 	//copy information from CANdbc to CANvars for defaults
 	CANvars[0].SID = CANdbc[VAR1DEFAULT].SID;
@@ -69,6 +70,10 @@ void CANSetup()
 	CANvars[7].New = 0;
 	memcpy(&CANvars[7].Name, "Tritium Bus Voltage",20);
 
+	//clear all CANvars data fields
+	for(i=0;i<8;i++)
+		CANvars[i].data.U64 = 0LL;
+
 	InitECanaGpio();
 	InitECana();
 
@@ -100,7 +105,7 @@ void CANSetup()
 	ECanaShadow.CANMIL.bit.MIL0  = 1;  		// Int.-Level MB#0  -> I1EN
 
 	//Heart TRANSMIT
-	ECanaMboxes.MBOX1.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX1.MSGID.bit.IDE = 0;	 //standard id
 	ECanaMboxes.MBOX1.MSGID.bit.AME = 0; 	// all bit must match
 	ECanaMboxes.MBOX1.MSGID.bit.AAM = 1; 	//RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX1.MSGCTRL.bit.DLC = 8;
