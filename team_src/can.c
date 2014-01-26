@@ -45,11 +45,11 @@ void CANSetup()
 	CANvars[3].Offset = CANdbc[VAR4DEFAULT].Offset;
 	CANvars[3].New = 0;
 	memcpy(&CANvars[3].Name, &CANdbcNames[VAR4DEFAULT],22);
-	//CANvars[6] is always CANcorder heartbeat
-	CANvars[6].SID = CANCORDERHEART_SID;
-	CANvars[6].TypeCode = CANCORDERHEART_TYPE;
-	CANvars[6].Offset = CANCORDERHEART_OFFSET;
-	CANvars[6].New = 0;
+	//CANvars[7] is always CANcorder heartbeat
+	CANvars[7].SID = CANCORDERHEART_SID;
+	CANvars[7].TypeCode = CANCORDERHEART_TYPE;
+	CANvars[7].Offset = CANCORDERHEART_OFFSET;
+	CANvars[7].New = 0;
 	memcpy(&CANvars[6].Name, "CANcorder Heartbeat",20);
 	//CANvars[4] is always motor temperature
 	CANvars[4].SID = CANMOTORTEMP_SID;
@@ -63,11 +63,11 @@ void CANSetup()
 	CANvars[5].Offset = CAN12VBUS_OFFSET;
 	CANvars[5].New = 0;
 	memcpy(&CANvars[5].Name, "12V Bus Voltage",16);
-	//CANvars[7] is always Tritium bus voltage
-	CANvars[7].SID = TRITIUMVBUS_SID;
-	CANvars[7].TypeCode = TRITIUMVBUS_TYPE;
-	CANvars[7].Offset = TRITIUMVBUS_OFFSET;
-	CANvars[7].New = 0;
+	//CANvars[6] is always Tritium bus voltage
+	CANvars[6].SID = TRITIUMVBUS_SID;
+	CANvars[6].TypeCode = TRITIUMVBUS_TYPE;
+	CANvars[6].Offset = TRITIUMVBUS_OFFSET;
+	CANvars[6].New = 0;
 	memcpy(&CANvars[7].Name, "Tritium Bus Voltage",20);
 
 	//clear all CANvars data fields
@@ -388,6 +388,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[0].data.U32 = ECanaMboxes.MBOX2.MDL.all;
 		CANvars[0].data.U64 = CANvars[0].data.U64 >> CANvars[0].Offset;
 		CANvars[0].New = 1;
+		ECanaRegs.CANRMP.bit.RMP2 = 1;
 	break;
 
 	case VARIABLE2_BOX:
@@ -396,6 +397,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[1].data.U32 = ECanaMboxes.MBOX3.MDL.all;
 		CANvars[1].data.U64 = CANvars[1].data.U64 >> CANvars[1].Offset;
 		CANvars[2].New = 1;
+		ECanaRegs.CANRMP.bit.RMP3 = 1;
 	break;
 
 	case VARIABLE3_BOX:
@@ -404,6 +406,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[2].data.U32 = ECanaMboxes.MBOX4.MDL.all;
 		CANvars[2].data.U64 = CANvars[2].data.U64 >> CANvars[2].Offset;
 		CANvars[2].New = 1;
+		ECanaRegs.CANRMP.bit.RMP4 = 1;
 	break;
 
 	case VARIABLE4_BOX:
@@ -412,15 +415,17 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[3].data.U32 = ECanaMboxes.MBOX5.MDL.all;
 		CANvars[3].data.U64 = CANvars[3].data.U64 >> CANvars[3].Offset;
 		CANvars[3].New = 1;
+		ECanaRegs.CANRMP.bit.RMP5 = 1;
 	break;
 
 	case CANCORDERHEART_BOX:
 		StopWatchRestart(cancorder_watch);
-		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDH.all;
-		CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
-		CANvars[6].data.U32 = ECanaMboxes.MBOX6.MDL.all;
-		CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
-		CANvars[6].New = 1;
+		CANvars[7].data.U32 = ECanaMboxes.MBOX6.MDH.all;
+		CANvars[7].data.U64 = CANvars[7].data.U64 << 32L;
+		CANvars[7].data.U32 = ECanaMboxes.MBOX6.MDL.all;
+		CANvars[7].data.U64 = CANvars[7].data.U64 >> CANvars[6].Offset;
+		CANvars[7].New = 1;
+		ECanaRegs.CANRMP.bit.RMP6 = 1;
 	break;
 
 	case CANMOTORTEMP_BOX:
@@ -430,6 +435,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDL.all;
 		CANvars[4].data.U64 = CANvars[4].data.U64 >> CANvars[4].Offset;
 		CANvars[4].New = 1;
+		ECanaRegs.CANRMP.bit.RMP7 = 1;
 	break;
 
 	case CAN12VBUS_BOX:
@@ -438,15 +444,17 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDL.all;
 		CANvars[5].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
 		CANvars[5].New = 1;
+		ECanaRegs.CANRMP.bit.RMP8 = 1;
 	break;
 
 	case TRITIUMVBUS_BOX:
 			StopWatchRestart(tritium_watch);
-			CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDH.all;
-			CANvars[7].data.U64 = CANvars[5].data.U64 << 32L;
-			CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDL.all;
-			CANvars[7].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
-			CANvars[7].New = 1;
+			CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDH.all;
+			CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
+			CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDL.all;
+			CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
+			CANvars[6].New = 1;
+			ECanaRegs.CANRMP.bit.RMP9 = 1;
 		break;
   }
 

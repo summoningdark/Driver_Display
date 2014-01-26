@@ -686,7 +686,7 @@ void PrintCANvariable(uint8_t N, uint8_t reduced)
 		sprintf(text,"%lu",TempVar.data.U32);
 	break;
 	case 6:			//float 32
-			sprintf(text,"%.2f",TempVar.data.F32);
+			sprintf(text,"%.1f",TempVar.data.F32);
 	break;
 	case 7:			//int64
 			sprintf(text,"%lld",TempVar.data.I64);
@@ -695,7 +695,7 @@ void PrintCANvariable(uint8_t N, uint8_t reduced)
 			sprintf(text,"%llu",TempVar.data.U64);
 	break;
 	case 9:			//float64
-			sprintf(text,"%.2f",TempVar.data.F64);
+			sprintf(text,"%.1f",TempVar.data.F64);
 	break;
 	}
 

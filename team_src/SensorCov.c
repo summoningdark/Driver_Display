@@ -117,15 +117,15 @@ void SensorCovMeasure()
 		SetLEDs(IND1GREEN,IND1MASK);
 
 
-	if (CANvars[7].data.F32 < 50)
+	if (CANvars[6].data.F32 < 50)
 	{
 		SetLEDs(IND2RED,IND2MASK);
 	}
-	else if (CANvars[7].data.F32 < 350)
+	else if (CANvars[6].data.F32 < 350)
 	{
 		SetLEDs(IND2YELLOW,IND2MASK);
 	}
-	else if (CANvars[7].data.F32 < 500)
+	else if (CANvars[6].data.F32 < 500)
 	{
 		SetLEDs(IND2GREEN,IND2MASK);
 	}
@@ -546,6 +546,7 @@ void SensorCovMeasure()
 				set_font(RFontHuge);				//big font for race mode
 				set_cursor(0,10);					//center the value
 				PrintCANvariable(0, 1);				//update the display
+				CANvars[0].New = 0;					//variable is no longer new
 			}
 
 			if(GetButtonPress() == BTN_MENU)
@@ -576,6 +577,7 @@ void SensorCovMeasure()
 			set_font(FontLarge);				//Medium font for test mode
 			set_cursor(0,23);					//center the value
 			PrintCANvariable(0, 0);				//update the display
+			CANvars[0].New = 0;					//variable is no longer new
 		}
 
 		if(CANvars[4].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
@@ -583,6 +585,7 @@ void SensorCovMeasure()
 				//do percent bar for motor temp
 				//max motor temp is 100 so this is easy
 				status_bar(15,0,115,10,(int)CANvars[4].data.F32,2);
+				CANvars[4].New = 0;
 
 		}
 
@@ -591,6 +594,7 @@ void SensorCovMeasure()
 			DisplayRefresh=0;					//just redrew the display
 			//do status bar for 12V (get from wavesculptor)
 			status_bar(15,54,115,63,(int)(CANvars[5].data.F32/.14),2);
+			CANvars[5].New = 0;
 
 		}
 
@@ -610,7 +614,11 @@ void SensorCovMeasure()
 	break;
 
 	case DISPLAY4:			//Display 4 with descriptions
+		if (DisplayRefresh)		//do initial screen drawing
+		{
 			SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_DOWN_GREEN | BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+		}
+
 			set_cursor(0,0);	//start at top
 			set_font(Font);		//use small font
 			for(tmp=0;tmp<4;tmp++)
@@ -626,6 +634,7 @@ void SensorCovMeasure()
 					print_char(0x0A,0,0);													//LF
 					//print variable value
 					PrintCANvariable(d4N[tmp], 0);
+					CANvars[d4N[tmp]].New = 0 ;												//variable is no longer new
 					clear_to_end();															//clear the rest of the line (entries may not all be the same length)
 					print_char(0x0D,0,0);													//CR
 					print_char(0x0A,0,0);													//LF
@@ -657,11 +666,11 @@ void SensorCovMeasure()
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			case BTN_SELECT:		//this button increments the index of the highlighted variable
-				if (++d4N[d4S] == 6) d4N[d4S] = 0;
+				if (++d4N[d4S] == 7) d4N[d4S] = 0;
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			case BTN_BACK:			//this button decrements the index of the highlighted variable
-				if (--d4N[d4S] == -1) d4N[d4S] = 5;
+				if (--d4N[d4S] == -1) d4N[d4S] = 6;
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			}
