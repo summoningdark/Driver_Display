@@ -50,7 +50,7 @@ void CANSetup()
 	CANvars[7].TypeCode = CANCORDERHEART_TYPE;
 	CANvars[7].Offset = CANCORDERHEART_OFFSET;
 	CANvars[7].New = 0;
-	memcpy(&CANvars[6].Name, "CANcorder Heartbeat",20);
+	memcpy(&CANvars[7].Name, "CANcorder Heartbeat",20);
 	//CANvars[4] is always motor temperature
 	CANvars[4].SID = CANMOTORTEMP_SID;
 	CANvars[4].TypeCode = CANMOTORTEMP_TYPE;
@@ -68,7 +68,7 @@ void CANSetup()
 	CANvars[6].TypeCode = TRITIUMVBUS_TYPE;
 	CANvars[6].Offset = TRITIUMVBUS_OFFSET;
 	CANvars[6].New = 0;
-	memcpy(&CANvars[7].Name, "Tritium Bus Voltage",20);
+	memcpy(&CANvars[6].Name, "Tritium Bus Voltage",20);
 
 	//clear all CANvars data fields
 	for(i=0;i<8;i++)

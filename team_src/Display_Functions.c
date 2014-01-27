@@ -705,10 +705,7 @@ void PrintCANvariable(uint8_t N, int8_t size)
 		}
 		else
 		{	//smallest font, maximum of 20 characters and a decimal
-			if (TempVar.data.F64 >= 0)
-				length = 15;		//positive number print with 4 significant digits
-			else
-				length = 14;
+				length = 6;		//positive number print with 4 significant digits
 		}
 		sprintf(text,"%.*G",length,TempVar.data.F32);
 	break;
@@ -736,10 +733,7 @@ void PrintCANvariable(uint8_t N, int8_t size)
 		}
 		else
 		{	//smallest font, maximum of 20 characters and a decimal
-			if (TempVar.data.F64 >= 0)
-				length = 15;		//positive number print with 4 significant digits
-			else
-				length = 14;
+				length = 6;		//positive number print with 4 significant digits
 		}
 		sprintf(text,"%.*G",length,TempVar.data.F64);		//negative numbers print with 3 significant digits
 	break;

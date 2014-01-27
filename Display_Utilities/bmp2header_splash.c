@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
 	Nrows = 8;			//number of whole rows necessary
 
-	printf("const unsigned int splash[1024] = {");	//print the array definition
+	printf("const unsigned int Splash[1024] = {");	//print the array definition
 
 	//now build image data
 	for (i=0;i<Nrows;i++)	//loop for each row

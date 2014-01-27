@@ -11,6 +11,7 @@
 
 extern const char CANdbcNames[][22];
 extern const can_variable_list_struct CANdbc[];
+extern unsigned int x_offset;
 
 ops_struct ops_temp;
 data_struct data_temp;
@@ -628,9 +629,12 @@ void SensorCovMeasure()
 					print_char(tmp+49,(d4S==tmp),0);										//print Watch label
 					print_char(' ',(d4S==tmp),0);;
 					print_rstr(&CANvars[d4N[tmp]].Name[0],(d4S==tmp),0);					//print Variable Name
-					clear_to_end();															//clear the rest of the line (entries may not all be the same length)
-					print_char(0x0D,0,0);													//CR
-					print_char(0x0A,0,0);													//LF
+					if (x_offset > 0)
+					{
+						clear_to_end();															//clear the rest of the line (entries may not all be the same length)
+						print_char(0x0D,0,0);													//CR
+						print_char(0x0A,0,0);													//LF
+					}
 					//print variable value
 					PrintCANvariable(d4N[tmp], 0);
 					CANvars[d4N[tmp]].New = 0 ;												//variable is no longer new
