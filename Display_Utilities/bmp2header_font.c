@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
 	//build font
 	
-	printf("const unsigned char Font[%d] = {0x%.2x, 0x%.2x, 0x%.2x, 0x%.2x,\n",font_size,char_w,h,char_sw,font_space);	//print the array definition
+	printf("const unsigned int Font[%d] = {0x%.2x, 0x%.2x, 0x%.2x, 0x%.2x,\n",font_size,char_w,h,char_sw,font_space);	//print the array definition
 
 	//now build image data
 

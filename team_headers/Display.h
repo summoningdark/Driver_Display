@@ -83,6 +83,6 @@ extern void LCDdelay();
 extern void delay_ms(uint16_t ms);
 extern void SetLCDControlPort(uint8_t Cmd);
 extern void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar);
-extern void PrintCANvariable(uint8_t N, uint8_t reduced);
+extern void PrintCANvariable(uint8_t N, int8_t size);
 
 #endif /* DISPLAY_H_ */

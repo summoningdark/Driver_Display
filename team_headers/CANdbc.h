@@ -9,7 +9,7 @@
 
 #define NUMCANVARS 10
 
-#define VAR1DEFAULT 0
+#define VAR1DEFAULT 6
 #define VAR2DEFAULT 1
 #define VAR3DEFAULT 2
 #define VAR4DEFAULT 3
@@ -25,7 +25,7 @@ const can_variable_list_struct CANdbc[NUMCANVARS]={	{1,0,0},
 							{4,3,0},
 							{5,4,32},
 							{6,5,8},
-							{7,6,23},
+							{7,6,0},
 							{8,7,0},
 							{9,8,0},
 							{10,9,0}
@@ -39,7 +39,7 @@ const char CANdbcNames[NUMCANVARS+1][22]={	"int8 offset 0",
 				"uint16 offset 0",
 				"int32 offset 32",
 				"uint32 offset 8",
-				"float32 offset 23",
+				"float32 offset 0",
 				"int64 offset 0",
 				"uint64 offset 0",
 				"float64 offset 0",

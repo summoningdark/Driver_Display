@@ -90,6 +90,7 @@ void SensorCovInit()
 	//testing
 	CANvars[4].data.F32 = 37.4;			//testing motor temp
 	CANvars[5].data.F32 = 12.6;			//testing 12V bus
+	CANvars[0].data.F32 = 0.123;
 	Menu_watch = StartStopWatch(700000L);
 	conv_watch = StartStopWatch(1000);
 }
@@ -543,9 +544,8 @@ void SensorCovMeasure()
 			if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
 			{
 				DisplayRefresh=0;					//just redrew the display
-				set_font(RFontHuge);				//big font for race mode
 				set_cursor(0,10);					//center the value
-				PrintCANvariable(0, 1);				//update the display
+				PrintCANvariable(0, 2);				//update the display
 				CANvars[0].New = 0;					//variable is no longer new
 			}
 
@@ -574,9 +574,8 @@ void SensorCovMeasure()
 
 		if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
 		{
-			set_font(FontLarge);				//Medium font for test mode
 			set_cursor(0,23);					//center the value
-			PrintCANvariable(0, 0);				//update the display
+			PrintCANvariable(0, 1);				//update the display
 			CANvars[0].New = 0;					//variable is no longer new
 		}
 

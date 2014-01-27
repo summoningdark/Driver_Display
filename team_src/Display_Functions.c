@@ -31,7 +31,7 @@ void LCDdelay();						//a delay of at least 500ns
 void delay_ms(uint16_t ms);				//function to delay ms milliseconds
 void SetLCDControlPort(uint8_t Cmd);	//this function should set whatever pins are used for the LCD control pins to outputs and set the values as follows:
 void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar);	//sets the CAN system to monitor CANvar using slot N
-void PrintCANvariable(uint8_t N, uint8_t reduced);		//prints the value in slot N to the LCD
+void PrintCANvariable(uint8_t N, int8_t size);		//prints the value in slot N to the LCD
 
 
 void LCD_bl(int i)
@@ -650,21 +650,23 @@ void SetCANmonitor(uint8_t N, can_variable_list_struct CANvar)
 	}
 }
 
-void PrintCANvariable(uint8_t N, uint8_t reduced)
+void PrintCANvariable(uint8_t N, int8_t size)
 {
 	can_variable_struct TempVar;
-	char text[22];
+	char text[80];
+	int length=0, i=0;
 
 	//note disable interrupts before latching CANvars[n] to the temp CANvar
 	DINT;
 		memcpy(&TempVar, &CANvars[N], sizeof(can_variable_struct));
 	EINT;
 
+
 	//create string from variable
 	switch(TempVar.TypeCode)
 	{
 	case 0:			//int8
-		if(TempVar.data.U16 & 0x0080)					//check sign bit in bit position 8
+		if(TempVar.data.U16 & 0x0080)								//check sign bit in bit position 8
 			sprintf(text,"%d",(int)(0xFF00 | TempVar.data.U16));	//int8 is negative, sign extend the int16
 		else
 			sprintf(text,"%d",(int)(0x00FF & TempVar.data.U16));	//int8 is positive, clear the upper 8 bits
@@ -686,7 +688,29 @@ void PrintCANvariable(uint8_t N, uint8_t reduced)
 		sprintf(text,"%lu",TempVar.data.U32);
 	break;
 	case 6:			//float 32
-			sprintf(text,"%.1f",TempVar.data.F32);
+		//to maximize the precision of float32 printing with large fonts, print with different formats depending on value and font
+		if (size == 2)
+		{	//largest font, maximum of 4 characters and a decimal
+			if (TempVar.data.F64 >= 0)
+				length = 5;		//positive number print with 4 significant digits
+			else
+				length = 4;
+		}
+		else if (size == 1)
+		{	//medium font, maximum of ### characters and a decimal
+			if (TempVar.data.F64 >= 0)
+				length = 7;		//positive number print with 4 significant digits
+			else
+				length = 6;
+		}
+		else
+		{	//smallest font, maximum of 20 characters and a decimal
+			if (TempVar.data.F64 >= 0)
+				length = 15;		//positive number print with 4 significant digits
+			else
+				length = 14;
+		}
+		sprintf(text,"%.*G",length,TempVar.data.F32);
 	break;
 	case 7:			//int64
 			sprintf(text,"%lld",TempVar.data.I64);
@@ -695,9 +719,69 @@ void PrintCANvariable(uint8_t N, uint8_t reduced)
 			sprintf(text,"%llu",TempVar.data.U64);
 	break;
 	case 9:			//float64
-			sprintf(text,"%.1f",TempVar.data.F64);
+		//to maximize the precision of float64 printing with large fonts, print with different formats depending on value and font
+		if (size == 2)
+		{	//largest font, maximum of 4 characters and a decimal
+			if (TempVar.data.F64 >= 0)
+				length = 5;		//positive number print with 4 significant digits
+			else
+				length = 4;
+		}
+		else if (size == 1)
+		{	//medium font, maximum of ### characters and a decimal
+			if (TempVar.data.F64 >= 0)
+				length = 7;		//positive number print with 4 significant digits
+			else
+				length = 6;
+		}
+		else
+		{	//smallest font, maximum of 20 characters and a decimal
+			if (TempVar.data.F64 >= 0)
+				length = 15;		//positive number print with 4 significant digits
+			else
+				length = 14;
+		}
+		sprintf(text,"%.*G",length,TempVar.data.F64);		//negative numbers print with 3 significant digits
 	break;
 	}
 
-	print_rstr(text,0,reduced);
+	//pick actual font size depending on length of string
+
+	length = 0;
+	i=0;
+	while(text[i] > 0)	//count characters which are not .
+	{
+		if (text[i] != '.') length++;
+		i++;
+	}
+
+	if ((size == 2) & (length > 5))
+		size = 1;
+
+	if ((size == 1) & (length > 7))
+		size = 0;
+
+	if((size == 0) & (length > 20))
+		size = -1;
+
+	if(size == 2)
+	{
+		set_font(RFontHuge);
+		print_rstr(text,0,1);
+	}
+	else if (size == 1)
+	{
+		set_font(FontLarge);
+		print_rstr(text,0,0);
+	}
+	else if (size == 0)
+	{
+		set_font(Font);
+		print_rstr(text,0,0);
+	}
+	else
+	{
+		set_font(Font);
+		print_cstr("OVER",0,0);
+	}
 }

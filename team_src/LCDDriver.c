@@ -354,7 +354,7 @@ void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 		if(reduced)	//see if we are using a reduced font (numerals only)
 		{
 			//coerce txt to valid printable character
-			//must treat '+' '-' '.' separately
+			//must treat '+' '-' '.' 'e' 'E' separately
 			if(txt == 43)	// '+'
 			{
 				text_array_offset = 10 * font_bytes + 4;
@@ -366,6 +366,14 @@ void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 			else if (txt == 46) // '.'
 			{
 				text_array_offset = 12 * font_bytes + 4;
+			}
+			else if (txt == 69) // 'E'
+			{
+				text_array_offset = 13 * font_bytes + 4;
+			}
+			else if (txt == 101) // 'e'
+			{
+				text_array_offset = 14 * font_bytes + 4;
 			}
 			else
 			{

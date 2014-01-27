@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	buff[0]=w;
 	buff[1]=h;
  
-	printf("static unsigned char sprite[]={0x%.2x, 0x%.2x", buff[0],buff[1]);	//print the array definition
+	printf("static unsigned int sprite[]={0x%.2x, 0x%.2x", buff[0],buff[1]);	//print the array definition
 
 	//now build image data
 	for (i=0;i<Nrows;i++)	//loop for each row
