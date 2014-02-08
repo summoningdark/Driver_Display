@@ -41,8 +41,8 @@ void ClearMailBoxes();
 #define CAN12VBUS_BOX	8
 #define TRITIUMVBUS_BOX 9
 
-#define COMMAND_ID 		0x1
-#define HEARTBEAT_ID 	0xff
+#define COMMAND_ID 		0x35
+#define HEARTBEAT_ID 	0x34
 
 #define HEARTBEAT_BOX 	1
 

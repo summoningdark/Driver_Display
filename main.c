@@ -8,7 +8,7 @@
 #include "Boot.h"
 #include "all.h"
 
-Uint16 MesgID = 5;
+Uint16 MesgID = 0x33;
 
 button_queue_struct ButtonPress = {0,0,0,0,{0}};
 unsigned int ButtonStatus=0;

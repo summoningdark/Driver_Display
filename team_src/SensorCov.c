@@ -540,7 +540,7 @@ void SensorCovMeasure()
 	case RACEMODE:			//default state (race)
 			if (DisplayRefresh)		//do initial screen drawing
 			{
-				SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
+				SetLEDs(BTN_BACK_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
 			}
 			if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
 			{
@@ -550,25 +550,30 @@ void SensorCovMeasure()
 				CANvars[0].New = 0;					//variable is no longer new
 			}
 
-			if(GetButtonPress() == BTN_MENU)
+			switch(GetButtonPress())
 			{
+			case BTN_MENU:
 				DisplayRefresh = 1;					//Flag Display for update
 				MenuList = MainMenuText;			//point to main menu text
 				MenuStackp = 0;						//clear stack
 				Push(RACEMODE);						//make sure we come back here
 				Push(MAINMENU);						//push main menu state
 				State = MENUSETUP;					//go to menu setup
-			}
-			else
-			{
+				break;
+			case BTN_BACK:
+				GpioDataRegs.GPATOGGLE.bit.GPIO16 = 1;	//toggle backlight
+				State = RACEMODE;					//stay on this state
+				break;
+			default:
 				State = RACEMODE;					//stay on this state
 			}
+
 	break;
 
 	case TESTMODE:									// test mode displays Variable 0 in medium font and 2 bar graphs
 		if (DisplayRefresh)		//do initial screen drawing
 		{
-			SetLEDs(BTN_MENU_GREEN,BTN_ALL_MASK);
+			SetLEDs(BTN_BACK_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
 			draw_sprite(0,0,1,7);	//draw motor icon 1
 			draw_sprite(0,54,0,7);	//draw 12v battery icon 0
 		}
@@ -598,17 +603,21 @@ void SensorCovMeasure()
 
 		}
 
-		if(GetButtonPress() == BTN_MENU)
+		switch(GetButtonPress())
 		{
+		case BTN_MENU:
 			DisplayRefresh = 1;					//Flag Display for update
 			MenuList = MainMenuText;			//point to main menu text
 			MenuStackp = 0;						//clear stack
 			Push(TESTMODE);						//make sure we come back here
 			Push(MAINMENU);						//push main menu state
 			State = MENUSETUP;					//go to menu setup
-		}
-		else
-		{
+			break;
+		case BTN_BACK:
+			GpioDataRegs.GPATOGGLE.bit.GPIO16 = 1;	//toggle backlight
+			State = TESTMODE;					//stay on this state
+			break;
+		default:
 			State = TESTMODE;					//stay on this state
 		}
 	break;
