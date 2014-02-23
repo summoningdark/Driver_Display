@@ -50,6 +50,20 @@ typedef union
 	LAT_LONG COORD;
 } CAN_DATA_u;
 
+typedef struct
+{
+	unsigned char C1mv : 15;
+	unsigned char C1b  : 1;
+	unsigned char C2mv : 15;
+	unsigned char C2b  : 1;
+} cell_can_struct;
+
+typedef union
+{
+	cell_can_struct data;
+	Uint32 U32;
+} cell_can_union;
+
 //this structure holds a CAN variable. it includes the CAN ID the variable lives on, a type code to tell how
 //to interpret the bits, and an offset to the first bit(offset is measured in bits from the LSB of CAN data byte 0).
 //ie. CAN data bytes data[0] .. data[8] are assumed LSB first.

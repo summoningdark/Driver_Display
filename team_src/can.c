@@ -16,6 +16,7 @@ struct ECAN_REGS ECanaShadow;
 #include "CANdbc.h"
 
 can_variable_struct CANvars[8];
+cell_can_union CanCell;
 char CellVoltFlag = 0;
 CellBlock CurrCellBlock;
 
@@ -202,6 +203,27 @@ void CANSetup()
 	ECanaShadow.CANME.bit.ME9 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM9  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL9  = 1;  		// Int.-Level MB#0  -> I1EN
+
+	//Cell voltage RTR Transmit
+	ECanaMboxes.MBOX10.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX10.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX10.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX10.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX10.MSGID.bit.STDMSGID = 0x310;
+	ECanaShadow.CANMD.bit.MD10 = 0;			//receive
+	ECanaShadow.CANME.bit.ME10 = 1;			//enable
+
+	//Cell voltage RECEIVE
+	ECanaMboxes.MBOX11.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX11.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX11.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX11.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX11.MSGID.bit.STDMSGID = 0x310;
+	ECanaShadow.CANMD.bit.MD11 = 1;			//receive
+	ECanaShadow.CANME.bit.ME11 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM11  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL11  = 1;  		// Int.-Level MB#0  -> I1EN
+
 
 	ECanaRegs.CANGAM.all = ECanaShadow.CANGAM.all;
 	ECanaRegs.CANGIM.all = ECanaShadow.CANGIM.all;
@@ -450,14 +472,30 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	break;
 
 	case TRITIUMVBUS_BOX:
-			StopWatchRestart(tritium_watch);
-			CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDH.all;
-			CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
-			CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDL.all;
-			CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
-			CANvars[6].New = 1;
-			ECanaRegs.CANRMP.bit.RMP9 = 1;
-		break;
+		StopWatchRestart(tritium_watch);
+		CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDH.all;
+		CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
+		CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDL.all;
+		CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
+		CANvars[6].New = 1;
+		ECanaRegs.CANRMP.bit.RMP9 = 1;
+	break;
+
+	case CELLVOLT_BOX:
+		CanCell.U32 = ECanaMboxes.MBOX11.MDL.all;		//copy can data into union for decoding
+		CurrCellBlock.Volt[0] = CanCell.data.C1mv;
+		CurrCellBlock.Balance[0] = CanCell.data.C1b;
+		CurrCellBlock.Volt[1] = CanCell.data.C2mv;
+		CurrCellBlock.Balance[1] = CanCell.data.C2b;
+		CanCell.U32 = ECanaMboxes.MBOX11.MDH.all;		//copy can data into union for decoding
+		CurrCellBlock.Volt[2] = CanCell.data.C1mv;
+		CurrCellBlock.Balance[2] = CanCell.data.C1b;
+		CurrCellBlock.Volt[3] = CanCell.data.C2mv;
+		CurrCellBlock.Balance[3] = CanCell.data.C2b;
+		CellVoltFlag = 2;								//flag reception
+
+		ECanaRegs.CANRMP.bit.RMP11 = 1;
+	break;
   }
 
 

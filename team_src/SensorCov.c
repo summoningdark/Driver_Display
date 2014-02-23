@@ -9,6 +9,8 @@
 #include "menus.h"
 #include <stdio.h>
 
+#define round(x) ((x)>=0?(int)((x)+0.5):(int)((x)-0.5))
+
 extern const char CANdbcNames[][22];
 extern const can_variable_list_struct CANdbc[];
 extern unsigned int x_offset;
@@ -17,6 +19,7 @@ ops_struct ops_temp;
 data_struct data_temp;
 stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
 stopwatch_struct* CellVolt_watch;		//stopwatch for cell voltage timeouts
+stopwatch_struct* CellTime_watch;		//stopwatch for cell voltage measurement timing
 extern stopwatch_struct* cancorder_watch;	//stopwatch for cancorder heartbeat timeout
 extern stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
 
@@ -109,6 +112,7 @@ void SensorCovInit()
 	CANvars[0].data.F32 = 0.123;
 	Menu_watch = StartStopWatch(700000L);	//stopwatch for menu timeout
 	CellVolt_watch = StartStopWatch(1000);	//stopwatch for Cell voltage timeout
+	CellTime_watch = StartStopWatch(1000);	//stopwatch for Cell voltage request timing
 }
 
 
@@ -126,6 +130,7 @@ void SensorCovMeasure()
 	int tmp;
 	char text[80];
 	float tmpFloat;
+	struct ECAN_REGS ECanaShadow;	//shadow structure for modifying CAN registers
 	static can_variable_list_struct tmpCANvar;
 
 	//always check for cancorder and tritium status
@@ -746,28 +751,30 @@ void SensorCovMeasure()
 				for(tmp=0;tmp<NCELLS;tmp++)	//put each cell in a bin
 				{
 					if (CellVolt[tmp] >= CellDeadV)
-						CellGraph[floor((CellVolt[tmp]-CellDeadV)/tmpFloat)] +=1;	//increment bin corresponding to cell
+						CellGraph[(int)((CellVolt[tmp]-CellDeadV)/tmpFloat)] +=1;	//increment bin corresponding to cell
 				}
 
 				//scale bins so 1 = 50, NCELLS = 0
 				for(tmp=0;tmp<128;tmp++)
 				{
-
+					if(CellGraph[tmp] > 0)
+						CellGraph[tmp] = 50-(int)(CellGraph[tmp]*50.0/NCELLS);
 				}
 			}
 			else
 			{	//calculate Bar Graph
 				//Bar Graph is one vertical line/cell, scaled so that max discharge has a height of 1 pixel(50) and max charge has a height of 49 pixels(1)
 				//if there is no data for a cell, the graph value is set to 0 and no line is drawn
+				tmpFloat = -50.0/(CellChargeV-CellDeadV);	//slope for conversion
 				for(tmp=0;tmp<NCELLS;tmp++)	//loop for all cells
 				{
 					if(CellGraph[tmp] == -1)	//previously used graph array to indicate balancing state
 					{
-						//todo calculate cell bar (make negative to indicate balancing)
+						CellGraph[tmp] = -round(tmpFloat*(CellVolt[tmp]-CellChargeV));
 					}
 					else
 					{
-						//todo calculate cell bar (make positive to indicate not balancing)
+						CellGraph[tmp] = round(tmpFloat*(CellVolt[tmp]-CellChargeV));
 					}
 				}
 				for(tmp=tmp;tmp<128;tmp++)	//zero out remaining screen area
@@ -779,11 +786,36 @@ void SensorCovMeasure()
 		}
 		else if(CellVoltFlag == 0)					//request cell voltage
 		{
-			//todo setup request mailbox
-			//todo setup receive mailbox
-			//todo send RTR
-			StopWatchRestart(CellVolt_watch);		//restart timeout
-			CellVoltFlag = 1;						//flag waiting for response
+			if(isStopWatchComplete(CellTime_watch))	//this stopwatch limits spamming the bus with Cell voltage requests
+			{
+				EALLOW;
+				//set up mailbox(10,11)
+				ECanaShadow.CANME.all = ECanaRegs.CANME.all;	//get current CAN registers
+				ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;	//get current CAN registers
+
+				ECanaShadow.CANME.bit.ME10 = 0;
+				ECanaShadow.CANME.bit.ME11 = 0;
+				ECanaRegs.CANME.all = ECanaShadow.CANME.all;	//disable mailboxes so we can change the ID
+
+				//mailbox IDs, Cell voltages start at 0x310
+				ECanaMboxes.MBOX10.MSGID.bit.STDMSGID = 0x310+BatMonCell;
+				ECanaMboxes.MBOX11.MSGID.bit.STDMSGID = 0x310+BatMonCell;
+
+				ECanaMboxes.MBOX10.MSGCTRL.bit.DLC = 0;	//DLC is 0 for RTR
+				ECanaMboxes.MBOX10.MSGCTRL.bit.RTR = 1;	//send RTR
+
+				ECanaShadow.CANME.bit.ME10 = 1;			//enable mailbox 10
+				ECanaShadow.CANME.bit.ME11 = 1;			//enable mailbox 11
+				EDIS;
+
+				//request that the mailbox be sent
+				ECanaShadow.CANTRS.all = 1 << 0x0A;				//mark mailbox 10 for transmit
+				ECanaRegs.CANTRS.all = ECanaShadow.CANTRS.all;	//set in real registers
+
+				StopWatchRestart(CellVolt_watch);		//restart timeout
+				StopWatchRestart(CellTime_watch);		//restart Cell voltage request timer
+				CellVoltFlag = 1;						//flag waiting for response
+			}
 		}
 		else if(CellVoltFlag == 1)					//waiting for response
 		{
