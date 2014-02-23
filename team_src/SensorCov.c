@@ -40,6 +40,7 @@ extern stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
 #define TESTMODE	14
 #define DISPLAY4	15
 #define BATTMON		16
+#define FUELG		17
 
 //variables for menus
 #define NLINES 8
@@ -305,6 +306,22 @@ void SensorCovMeasure()
 			MenuStackp = 0;
 			State = DISPLAY4;
 			clear_screen(0);
+		break;
+		case MM_BATTMON:
+			//clear stack
+			MenuStackp = 0;
+			State = BATTMON;
+			clear_screen(0);
+		break;
+		case MM_FUELG:
+			//clear stack
+			MenuStackp = 0;
+			State = FUELG;
+			clear_screen(0);
+			tmpCANvar.SID = 0x40E;			//set CAN variable 1 to Tritium bus Amp Hours
+			tmpCANvar.Offset = 32;
+			tmpCANvar.TypeCode = 6;
+			SetCANmonitor(1,tmpCANvar);
 		break;
 		case MM_CV1:
 			Push(CV1);						//ultimately need to return to set variable 1
@@ -713,29 +730,30 @@ void SensorCovMeasure()
 		if (DisplayRefresh)		//screen drawing
 		{
 			if(BatGraphFlag)
-				SetLEDs(BTN_BACK_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+				SetLEDs(BTN_BACK_GREEN | BTN_DOWN_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 			else
-				SetLEDs(BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
-			clear_screen(0);
+				SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 			//print cell max/min
 			set_cursor(0,56);	//bottom row
 			set_font(Font);		//use small font
+			clear_to_end();		//clear old text
 			sprintf(text,"MAX %.3f %d:%d  MIN %3.f %d:%d",MaxCell,MaxB,MaxN,MinCell,MinB,MinN);
 			print_rstr(text,0,0);
 			for(tmp=0;tmp<128;tmp++)	//draw graph
 				if(CellGraph[tmp] >= 0)	//positive values are not balancing
 				{
+					line(0,tmp,54,tmp,0);					//clear line on graph
 					if(CellGraph[tmp] != 0) line(1,tmp,50,tmp,CellGraph[tmp]);	//a value of 0 indicates no data
 				}
 				else
 				{
+					line(0,tmp,54,tmp,0);					//clear line on graph
 					line(1,tmp, 54,tmp,52);					//draw balancing indicator
 					line(1,tmp,50,tmp,-CellGraph[tmp]);		//draw graph
 				}
 		}
 
 		DisplayRefresh = 0;						//by the time we get here, the display is redrawn
-		State = BATTMON;						//default come back to this state
 
 		if(BatMonCell == 30)	//if we have all the cell voltages, redraw the graph
 		{
@@ -857,6 +875,7 @@ void SensorCovMeasure()
 			BatMonCell++;							//increment cell block
 		}
 
+		State = BATTMON;						//default come back to this state
 		switch(GetButtonPress())
 		{
 		case BTN_MENU:
@@ -867,23 +886,51 @@ void SensorCovMeasure()
 			Push(MAINMENU);						//push main menu state
 			State = MENUSETUP;					//go to menu setup
 		break;
-		case BTN_SELECT:						//this button switches to Histogram mode
+		case BTN_UP:						//this button switches to Histogram mode
 			if(BatGraphFlag == 0)
 			{
-				SetLEDs(BTN_SELECT_RED, BTN_SELECT_MASK);
+				SetLEDs(BTN_UP_RED, BTN_UP_MASK);
 				BatGraphFlag = 1;
 			}
 		break;
-		case BTN_BACK:							//this button switches to Bar Graph mode
+		case BTN_DOWN:							//this button switches to Bar Graph mode
 			if(BatGraphFlag == 1)
 			{
-				SetLEDs(BTN_BACK_RED, BTN_BACK_MASK);
+				SetLEDs(BTN_DOWN_RED, BTN_DOWN_MASK);
 				BatGraphFlag = 0;
 			}
+		break;
+		case BTN_BACK:
+			GpioDataRegs.GPATOGGLE.bit.GPIO16 = 1;	//toggle backlight
 		break;
 		}
 	break;			//end case BATTMON
 
+	case FUELG:
+		//note Fuel Gauge automatically sets CAN variable 1 to be Tritium Bus Amp Hours
+		if (DisplayRefresh)		//do initial screen drawing
+			{
+				SetLEDs(BTN_BACK_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
+			}
+
+		switch(GetButtonPress())
+		{
+		case BTN_MENU:
+			DisplayRefresh = 1;					//Flag Display for update
+			MenuList = MainMenuText;			//point to main menu text
+			MenuStackp = 0;						//clear stack
+			Push(FUELG);						//make sure we come back here
+			Push(MAINMENU);						//push main menu state
+			State = MENUSETUP;					//go to menu setup
+			break;
+		case BTN_BACK:
+			GpioDataRegs.GPATOGGLE.bit.GPIO16 = 1;	//toggle backlight
+			State = FUELG;							//stay on this state
+			break;
+		default:
+			State = FUELG;						//stay on this state
+		}
+	break;			//end case FUELG
 	case CV1:		//Change Variable 1,2,3,4
 	case CV2:
 	case CV3:

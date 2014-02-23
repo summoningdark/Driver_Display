@@ -13,16 +13,18 @@
 #define MM_TESTMODE 1
 #define MM_DISPLAY4 2
 #define MM_BATTMON	3
-#define MM_CV1 		4
-#define MM_CV2 		5
-#define MM_CV3 		6
-#define MM_CV4 		7
+#define MM_FUELG	4
+#define MM_CV1 		5
+#define MM_CV2 		6
+#define MM_CV3 		7
+#define MM_CV4 		8
 
 //note only 21 chars are printable on a line.
 const char MainMenuText[][22]={				"Race Mode",
 											"Test Mode",
 											"Display 4",
 											"Battery Monitor",
+											"Fuel Gauge",
 											"Choose Watch 1",
 											"Choose Watch 2",
 											"Choose Watch 3",
