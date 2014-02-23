@@ -8,6 +8,8 @@
 #ifndef SENSORCOV_H_
 #define SENSORCOV_H_
 
+#define NCELLS 120
+
 void SensorCov();
 
 void SensorCovInit();

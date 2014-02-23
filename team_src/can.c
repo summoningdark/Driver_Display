@@ -16,6 +16,8 @@ struct ECAN_REGS ECanaShadow;
 #include "CANdbc.h"
 
 can_variable_struct CANvars[8];
+char CellVoltFlag = 0;
+CellBlock CurrCellBlock;
 
 void CANSetup()
 {

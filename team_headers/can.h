@@ -66,5 +66,7 @@ void ClearMailBoxes();
 #define TRITIUM_TIMEOUT			100000L
 
 extern can_variable_struct CANvars[8];
+extern char CellVoltFlag;
+extern CellBlock CurrCellBlock;
 
 #endif /* CAN_H_ */

@@ -15,8 +15,8 @@ extern unsigned int x_offset;
 
 ops_struct ops_temp;
 data_struct data_temp;
-stopwatch_struct* conv_watch;
 stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
+stopwatch_struct* CellVolt_watch;		//stopwatch for cell voltage timeouts
 extern stopwatch_struct* cancorder_watch;	//stopwatch for cancorder heartbeat timeout
 extern stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
 
@@ -36,6 +36,7 @@ extern stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
 #define RACEMODE	13
 #define TESTMODE	14
 #define DISPLAY4	15
+#define BATTMON		16
 
 //variables for menus
 #define NLINES 8
@@ -45,6 +46,17 @@ int MenuStack[10];							//stack for successive menu calls
 int MenuStackp;
 void Push(int s);
 int Pop();
+
+//variables for Cell Stats
+char BatMonCell = 0;			//battery monitor current cell
+char BatGraphFlag = 0;			//default to bar graph
+float CellVolt[120] = {0};		//holds cell voltages
+char CellGraph[128] = {0};		//holds cell graph
+float MaxCell=0, MinCell=5;		//max and min cell voltages
+char MaxN=-1, MinN=-1;			//max and min cell numbers
+char MaxB=-1, MinB=-1;			//max and min BIM numbers
+float CellChargeV = 4.5;		//Cell Max Charge Voltage
+float CellDeadV = 2.5;			//Cell Max Discharge Voltage
 
 void SensorCov()
 {
@@ -61,10 +73,13 @@ void SensorCov()
 
 void SensorCovInit()
 {
-	//todo USER: SensorCovInit()
 
 	//config input buttons
 	ButtonGpioInit();
+	ConfigLED0();
+	ConfigLED1();
+	SETLED0();
+	SETLED1();
 
 	//initialize the button press queue
 	ButtonPress.Current = 0;
@@ -92,8 +107,8 @@ void SensorCovInit()
 	CANvars[4].data.F32 = 37.4;			//testing motor temp
 	CANvars[5].data.F32 = 12.6;			//testing 12V bus
 	CANvars[0].data.F32 = 0.123;
-	Menu_watch = StartStopWatch(700000L);
-	conv_watch = StartStopWatch(1000);
+	Menu_watch = StartStopWatch(700000L);	//stopwatch for menu timeout
+	CellVolt_watch = StartStopWatch(1000);	//stopwatch for Cell voltage timeout
 }
 
 
@@ -108,8 +123,9 @@ void SensorCovMeasure()
 {
 	static int State=RACEMODE, d4S=0, DisplayRefresh = 1,ManID=0,ManDigit=2,ManOffset=0;
 	static int d4N[4]={0,1,2,3};
-	StopWatchRestart(conv_watch);
 	int tmp;
+	char text[80];
+	float tmpFloat;
 	static can_variable_list_struct tmpCANvar;
 
 	//always check for cancorder and tritium status
@@ -688,6 +704,154 @@ void SensorCovMeasure()
 			}
 	break;
 
+	case BATTMON:				//Battery Monitor
+		if (DisplayRefresh)		//screen drawing
+		{
+			if(BatGraphFlag)
+				SetLEDs(BTN_BACK_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+			else
+				SetLEDs(BTN_SELECT_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+			clear_screen(0);
+			//print cell max/min
+			set_cursor(0,56);	//bottom row
+			set_font(Font);		//use small font
+			sprintf(text,"MAX %.3f %d:%d  MIN %3.f %d:%d",MaxCell,MaxB,MaxN,MinCell,MinB,MinN);
+			print_rstr(text,0,0);
+			for(tmp=0;tmp<128;tmp++)	//draw graph
+				if(CellGraph[tmp] >= 0)	//positive values are not balancing
+				{
+					if(CellGraph[tmp] != 0) line(1,tmp,50,tmp,CellGraph[tmp]);	//a value of 0 indicates no data
+				}
+				else
+				{
+					line(1,tmp, 54,tmp,52);					//draw balancing indicator
+					line(1,tmp,50,tmp,-CellGraph[tmp]);		//draw graph
+				}
+		}
+
+		DisplayRefresh = 0;						//by the time we get here, the display is redrawn
+		State = BATTMON;						//default come back to this state
+
+		if(BatMonCell == 30)	//if we have all the cell voltages, redraw the graph
+		{
+			if(BatGraphFlag)
+			{	//calculate Histogram
+				//Histogram is 1 bar for each voltage bin [(CellChargV - CellDeadV)/128] volts/bin
+				//with height scaled so 0 pixels is 0 cells and 50 pixels is all the cells
+				for(tmp=0;tmp<128;tmp++)	//zero out all elements
+					CellGraph[tmp]=0;
+
+				tmpFloat = (CellChargeV-CellDeadV)/128.0;	//calculate bin size
+
+				for(tmp=0;tmp<NCELLS;tmp++)	//put each cell in a bin
+				{
+					if (CellVolt[tmp] >= CellDeadV)
+						CellGraph[floor((CellVolt[tmp]-CellDeadV)/tmpFloat)] +=1;	//increment bin corresponding to cell
+				}
+
+				//scale bins so 1 = 50, NCELLS = 0
+				for(tmp=0;tmp<128;tmp++)
+				{
+
+				}
+			}
+			else
+			{	//calculate Bar Graph
+				//Bar Graph is one vertical line/cell, scaled so that max discharge has a height of 1 pixel(50) and max charge has a height of 49 pixels(1)
+				//if there is no data for a cell, the graph value is set to 0 and no line is drawn
+				for(tmp=0;tmp<NCELLS;tmp++)	//loop for all cells
+				{
+					if(CellGraph[tmp] == -1)	//previously used graph array to indicate balancing state
+					{
+						//todo calculate cell bar (make negative to indicate balancing)
+					}
+					else
+					{
+						//todo calculate cell bar (make positive to indicate not balancing)
+					}
+				}
+				for(tmp=tmp;tmp<128;tmp++)	//zero out remaining screen area
+					CellGraph[tmp]=0;
+			}
+
+			DisplayRefresh = 1;		//flag redraw
+			BatMonCell = 0;			//start over
+		}
+		else if(CellVoltFlag == 0)					//request cell voltage
+		{
+			//todo setup request mailbox
+			//todo setup receive mailbox
+			//todo send RTR
+			StopWatchRestart(CellVolt_watch);		//restart timeout
+			CellVoltFlag = 1;						//flag waiting for response
+		}
+		else if(CellVoltFlag == 1)					//waiting for response
+		{
+			if(isStopWatchComplete(CellVolt_watch))	//check for timeout
+			{
+				CellVoltFlag = 0;					//flag request next cell block
+				CellVolt[BatMonCell*4] = -1;		//flag cell as no data
+				CellGraph[BatMonCell*4] = 0;
+				CellVolt[BatMonCell*4+1] = -1;		//flag cell as no data
+				CellGraph[BatMonCell*4+1] = 0;
+				CellVolt[BatMonCell*4+2] = -1;		//flag cell as no data
+				CellGraph[BatMonCell*4+2] = 0;
+				CellVolt[BatMonCell*4+3] = -1;		//flag cell as no data
+				CellGraph[BatMonCell*4+3] = 0;
+				BatMonCell++;						//increment cell block
+			}
+		}
+		else if (CellVoltFlag == 2)					//got Cell voltage
+		{
+			for(tmp=0;tmp<4;tmp++)
+			{
+				if((CurrCellBlock.Volt[tmp] > 0) && (CurrCellBlock.Volt[tmp] < 5))
+				{
+					if(CurrCellBlock.Volt[tmp] > MaxCell) MaxCell = CurrCellBlock.Volt[tmp];	//keep track of max and min
+					if(CurrCellBlock.Volt[tmp] < MinCell) MinCell = CurrCellBlock.Volt[tmp];
+					CellVolt[BatMonCell*4+tmp] = CurrCellBlock.Volt[tmp];	//save Cell voltage
+					if (CurrCellBlock.Balance[tmp] == 1)					//use graph array to save balancing status
+						CellGraph[BatMonCell*4+tmp] = -1;
+					else
+						CellGraph[BatMonCell*4+tmp] = 0;
+				}
+				else
+				{
+					CellVolt[BatMonCell*4+tmp] = -2;		//flag impossible voltage
+					CellGraph[BatMonCell*4+tmp] = 0;
+				}
+			}
+			CellVoltFlag = 0;						//flag request next cell block
+			BatMonCell++;							//increment cell block
+		}
+
+		switch(GetButtonPress())
+		{
+		case BTN_MENU:
+			DisplayRefresh = 1;					//Flag Display for update
+			MenuList = MainMenuText;			//point to main menu text
+			MenuStackp = 0;						//clear stack
+			Push(BATTMON);						//make sure we come back here
+			Push(MAINMENU);						//push main menu state
+			State = MENUSETUP;					//go to menu setup
+		break;
+		case BTN_SELECT:						//this button switches to Histogram mode
+			if(BatGraphFlag == 0)
+			{
+				SetLEDs(BTN_SELECT_RED, BTN_SELECT_MASK);
+				BatGraphFlag = 1;
+			}
+		break;
+		case BTN_BACK:							//this button switches to Bar Graph mode
+			if(BatGraphFlag == 1)
+			{
+				SetLEDs(BTN_BACK_RED, BTN_BACK_MASK);
+				BatGraphFlag = 0;
+			}
+		break;
+		}
+	break;			//end case BATTMON
+
 	case CV1:		//Change Variable 1,2,3,4
 	case CV2:
 	case CV3:
@@ -715,7 +879,6 @@ void UpdateStruct()
 {
 	memcpy(&data, &data_temp, sizeof(struct DATA));
 
-	//todo USER: UpdateStruct
 	//update with node specific op changes
 
 	//if ops is not changed outside of sensor conversion copy temp over, otherwise don't change
@@ -737,11 +900,10 @@ void UpdateStruct()
 
 void SensorCovDeInit()
 {
-	//todo USER: SensorCovDeInit()
-	StopStopWatch(conv_watch);
+	StopStopWatch(CellVolt_watch);
 	StopStopWatch(Menu_watch);
-	CLEARLED0();
-	CLEARLED1();
+	SETLED0();
+	SETLED1();
 }
 
 void Push(int s)

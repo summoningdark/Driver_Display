@@ -10,6 +10,12 @@
 
 typedef long long int64;
 
+typedef struct CELLBLOCK
+{
+	float Volt[4];
+	char Balance[4];
+} CellBlock;
+
 typedef struct TIME
 {
 	unsigned char years;
