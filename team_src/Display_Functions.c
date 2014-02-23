@@ -737,6 +737,14 @@ void PrintCANvariable(uint8_t N, int8_t size)
 		}
 		sprintf(text,"%.*G",length,TempVar.data.F64);		//negative numbers print with 3 significant digits
 	break;
+
+	case 10:	//Time
+		sprintf(text,"%d:%d:%d",TempVar.data.TIME.hours,TempVar.data.TIME.minutes,TempVar.data.TIME.seconds);
+	break;
+
+	case 11:	//GPS Lat/Long
+		sprintf(text,"%d\"%f'",TempVar.data.COORD.Degrees,TempVar.data.COORD.Minutes);
+	break;
 	}
 
 	//pick actual font size depending on length of string

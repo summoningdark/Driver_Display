@@ -167,21 +167,25 @@ void status_bar(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t percent,
 			 stop = (y2-y1)*percent;
 			 stop/=100;
 			 draw_block(x1,y1,x2,y1+(uint8_t)stop,f);
+			 draw_block(x1,y1+(uint8_t)stop+1,x2,y2,~f);
 		break;
 		case 1: //fill from right
 			 stop = (x2-x1)*percent;
 			 stop/=100;
-			 draw_block(x2-(uint8_t)stop,y1,x2,y2,f);
+			 draw_block(x2-(uint8_t)stop,y1,x2,y2,f);		//draw filled part of bar
+			 draw_block(x1,y1,x2-(uint8_t)stop-1,y2,~f);	//draw clear part of bar
 			 break;
 		case 2: //fill from left
 			 stop = (x2-x1)*percent;
 			 stop/=100;
 			 draw_block(x1,y1,x1+(uint8_t)stop,y2,f);
+			 draw_block(x1+(uint8_t)stop+1,y1,x2,y2,f);
 		break;
 		default: //fill from bottom
 			stop = (y2-y1)*percent;
 			stop/=100;
 			draw_block(x1,y2-(uint8_t)stop,x2,y2,f);
+			draw_block(x1,y2-(uint8_t)stop-1,x2,y1,f);
 		}
 	}
 }

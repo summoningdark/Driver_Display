@@ -10,6 +10,22 @@
 
 typedef long long int64;
 
+typedef struct TIME
+{
+	unsigned char years;
+	unsigned char month :8;
+	unsigned char day:8;
+	unsigned char hours:8;
+	unsigned char minutes:8;
+	unsigned char seconds:8;
+} TIME_STRUCT;
+
+typedef struct COORDINATES
+{
+	unsigned int Degrees:8;
+	float Minutes;
+} LAT_LONG;
+
 //this union is to make extracting arbitrary variable data out of a CAN message easy
 //first the data bytes from the CAN message are placed in a variable with this union type
 //then the union is shifted using its uint64 representation to bring the correct data bits to the right justified position
@@ -24,6 +40,8 @@ typedef union
 	int64	I64;
 	Uint64	U64;
 	float64	F64;
+	TIME_STRUCT	TIME;
+	LAT_LONG COORD;
 } CAN_DATA_u;
 
 //this structure holds a CAN variable. it includes the CAN ID the variable lives on, a type code to tell how
