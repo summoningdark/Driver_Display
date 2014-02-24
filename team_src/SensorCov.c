@@ -57,8 +57,8 @@ char BatGraphFlag = 0;			//default to bar graph
 float CellVolt[120] = {0};		//holds cell voltages
 char CellGraph[128] = {0};		//holds cell graph
 float MaxCell=0, MinCell=5;		//max and min cell voltages
-char MaxN=-1, MinN=-1;			//max and min cell numbers
-char MaxB=-1, MinB=-1;			//max and min BIM numbers
+char MaxN=23, MinN=5;			//max and min cell numbers
+char MaxB=1, MinB=4;			//max and min BIM numbers
 float CellChargeV = 4.5;		//Cell Max Charge Voltage
 float CellDeadV = 2.5;			//Cell Max Discharge Voltage
 
@@ -77,7 +77,7 @@ void SensorCov()
 
 void SensorCovInit()
 {
-
+	int tmp;
 	//config input buttons
 	ButtonGpioInit();
 	ConfigLED0();
@@ -107,6 +107,12 @@ void SensorCovInit()
 	//set up menus
 	MenuStackp = 0;
 
+	//battery graphs
+	for(tmp=0;tmp<128;tmp++)
+		CellGraph[tmp] = 0;
+	for(tmp=0;tmp<120;tmp++)
+			CellVolt[tmp] = -1;
+
 	//testing
 	CANvars[4].data.F32 = 37.4;			//testing motor temp
 	CANvars[5].data.F32 = 12.6;			//testing 12V bus
@@ -128,7 +134,7 @@ void SensorCovMeasure()
 {
 	static int State=RACEMODE, d4S=0, DisplayRefresh = 1,ManID=0,ManDigit=2,ManOffset=0;
 	static int d4N[4]={0,1,2,3};
-	int tmp;
+	int tmp,tmp2;
 	char text[80];
 	float tmpFloat;
 	struct ECAN_REGS ECanaShadow;	//shadow structure for modifying CAN registers
@@ -737,20 +743,25 @@ void SensorCovMeasure()
 			set_cursor(0,56);	//bottom row
 			set_font(Font);		//use small font
 			clear_to_end();		//clear old text
-			sprintf(text,"MAX %.3f %d:%d  MIN %3.f %d:%d",MaxCell,MaxB,MaxN,MinCell,MinB,MinN);
+			sprintf(text,"%#.3f %d:%d %#.3f %d:%d",MaxCell,MaxB,MaxN,MinCell,MinB,MinN);
 			print_rstr(text,0,0);
 			for(tmp=0;tmp<128;tmp++)	//draw graph
-				if(CellGraph[tmp] >= 0)	//positive values are not balancing
+			{
+				tmp2 = CellGraph[tmp];
+				if(tmp2 >= 0)	//positive values are not balancing
 				{
-					line(0,tmp,54,tmp,0);					//clear line on graph
-					if(CellGraph[tmp] != 0) line(1,tmp,50,tmp,CellGraph[tmp]);	//a value of 0 indicates no data
+					draw_block(tmp,54,tmp+1,0,0x00);					//clear line on graph
+					if(tmp2 != 0) draw_block(tmp,50,tmp+1,tmp2,0xFF);	//a value of 0 indicates no data
 				}
 				else
 				{
-					line(0,tmp,54,tmp,0);					//clear line on graph
-					line(1,tmp, 54,tmp,52);					//draw balancing indicator
-					line(1,tmp,50,tmp,-CellGraph[tmp]);		//draw graph
+					draw_block(tmp,54,tmp+1,0,0x00);			//clear line on graph
+					draw_block(tmp, 54,tmp+1,52,0xFF);		//draw balancing indicator
+					draw_block(tmp,50,tmp+1,-tmp2,0xFF);		//draw graph
 				}
+			}
+			MaxCell = 0;			//reset max/min cells
+			MinCell = 5;
 		}
 
 		DisplayRefresh = 0;						//by the time we get here, the display is redrawn
@@ -786,13 +797,20 @@ void SensorCovMeasure()
 				tmpFloat = -50.0/(CellChargeV-CellDeadV);	//slope for conversion
 				for(tmp=0;tmp<NCELLS;tmp++)	//loop for all cells
 				{
-					if(CellGraph[tmp] == -1)	//previously used graph array to indicate balancing state
+					if(CellVolt[tmp] > 0)
 					{
-						CellGraph[tmp] = -round(tmpFloat*(CellVolt[tmp]-CellChargeV));
+						if(CellGraph[tmp] == -1)	//previously used graph array to indicate balancing state
+						{
+							CellGraph[tmp] = -round(tmpFloat*(CellVolt[tmp]-CellChargeV));
+						}
+						else
+						{
+							CellGraph[tmp] = round(tmpFloat*(CellVolt[tmp]-CellChargeV));
+						}
 					}
 					else
 					{
-						CellGraph[tmp] = round(tmpFloat*(CellVolt[tmp]-CellChargeV));
+						CellGraph[tmp] = 0;	//no good cell voltage, zero graph
 					}
 				}
 				for(tmp=tmp;tmp<128;tmp++)	//zero out remaining screen area
@@ -807,27 +825,24 @@ void SensorCovMeasure()
 			if(isStopWatchComplete(CellTime_watch))	//this stopwatch limits spamming the bus with Cell voltage requests
 			{
 				EALLOW;
-				//set up mailbox(10,11)
+				//set up mailbox(11)
 				ECanaShadow.CANME.all = ECanaRegs.CANME.all;	//get current CAN registers
 				ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;	//get current CAN registers
 
-				ECanaShadow.CANME.bit.ME10 = 0;
 				ECanaShadow.CANME.bit.ME11 = 0;
 				ECanaRegs.CANME.all = ECanaShadow.CANME.all;	//disable mailboxes so we can change the ID
 
 				//mailbox IDs, Cell voltages start at 0x310
-				ECanaMboxes.MBOX10.MSGID.bit.STDMSGID = 0x310+BatMonCell;
 				ECanaMboxes.MBOX11.MSGID.bit.STDMSGID = 0x310+BatMonCell;
 
-				ECanaMboxes.MBOX10.MSGCTRL.bit.DLC = 0;	//DLC is 0 for RTR
-				ECanaMboxes.MBOX10.MSGCTRL.bit.RTR = 1;	//send RTR
+				ECanaMboxes.MBOX11.MSGCTRL.bit.RTR = 1;	//send RTR
 
-				ECanaShadow.CANME.bit.ME10 = 1;			//enable mailbox 10
 				ECanaShadow.CANME.bit.ME11 = 1;			//enable mailbox 11
+				ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 				EDIS;
 
 				//request that the mailbox be sent
-				ECanaShadow.CANTRS.all = 1 << 0x0A;				//mark mailbox 10 for transmit
+				ECanaShadow.CANTRS.bit.TRS11 = 1;				//mark mailbox 11 for RTR
 				ECanaRegs.CANTRS.all = ECanaShadow.CANTRS.all;	//set in real registers
 
 				StopWatchRestart(CellVolt_watch);		//restart timeout
@@ -911,6 +926,19 @@ void SensorCovMeasure()
 		if (DisplayRefresh)		//do initial screen drawing
 			{
 				SetLEDs(BTN_BACK_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
+				box(0,38,127,60);
+				status_bar(2,40,125,58,0,2);		//draw empty bar
+				draw_block(0, 38, 3, 28, 0xFF);		//draw empty tick
+				draw_block(124, 38, 127, 28, 0xFF);	//draw full tick
+				draw_block(63, 38, 65, 28, 0xFF);	//draw half tick
+				draw_block(32, 38, 34, 33, 0xFF);	//draw quarter tick
+				draw_block(94, 38, 96, 33, 0xFF);	//draw 3quarter tick
+				set_font(FontLarge);					//medium Font
+				set_cursor(0,0);
+				print_char('E',0,0);
+				set_cursor(112,0);
+				print_char('F',0,0);
+				DisplayRefresh = 0;
 			}
 
 		switch(GetButtonPress())

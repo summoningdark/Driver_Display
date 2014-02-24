@@ -179,13 +179,13 @@ void status_bar(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t percent,
 			 stop = (x2-x1)*percent;
 			 stop/=100;
 			 draw_block(x1,y1,x1+(uint8_t)stop,y2,f);
-			 draw_block(x1+(uint8_t)stop+1,y1,x2,y2,f);
+			 draw_block(x1+(uint8_t)stop+1,y1+1,x2,y2,~f);
 		break;
 		default: //fill from bottom
 			stop = (y2-y1)*percent;
 			stop/=100;
 			draw_block(x1,y2-(uint8_t)stop,x2,y2,f);
-			draw_block(x1,y2-(uint8_t)stop-1,x2,y1,f);
+			draw_block(x1,y2-(uint8_t)stop-1,x2,y1,~f);
 		}
 	}
 }
@@ -847,7 +847,7 @@ void draw_block(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t data)
 {
 	static int16_t width = 0, height = 0,x,y;
 	uint8_t n;
-	n=data;
+	n=(0x00FF & data);
 
 	//coerce values to be in range
 	if (x1 > 127) x1 = 127;
@@ -937,13 +937,13 @@ void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, u
 
 	shift = y % 8;				//calculate how much to shift the data bytes to line them up with the pages
 	shift2 = 8 - shift;
-	n = ((height-1+shift)/8)+1;		//number of pages(rows) the image occupies(need to loop through all of these, each gets pixels changed)
+	n = ((height-1+shift)/8)+1;	//number of pages(rows) the image occupies(need to loop through all of these, each gets pixels changed)
 	n2 = height/8;				//number of rows in image
 	if (height % 8 != 0)
 		n2++;
 	
-	mask1 =	0xFF << shift;			//mask1 needs to have 0's for each pixel in the top row NOT occupied by new image data	
-	mask2 = 0xFF >> (8-( (height+y) % 8) );	//mask2 needs to have 0's for each pixel in the bottom row NOT occupied by new image data
+	mask1 =	0x00FF & (0xFF << shift);			//mask1 needs to have 0's for each pixel in the top row NOT occupied by new image data
+	mask2 = 0x00FF & (0xFF >> (8-( (height+y) % 8) ));	//mask2 needs to have 0's for each pixel in the bottom row NOT occupied by new image data
 	
 	if ( ((height+y) % 8) == 0)
 		mask2=0xff;			//special case of exact fit in last row
@@ -973,7 +973,8 @@ void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, u
 					//if this is the first row, we need to mask off the blank pixels at the top of the row(these pix have random data)
 					temp &= mask1; //mask1 has shift blank pixels starting from LSB (LSB is the top of the stripe) 
 				}
-				else if (row == (n-1))
+
+				if (row == (n-1))
 				{
 					//if this is the last row, we need to maks off the blank pixels at the bottom of the image
 					temp &= mask2; //mask2 has blank pixels starting at MSB (MSB is the bottom of the stripe)
@@ -998,12 +999,15 @@ void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, u
 				 case 7:
 				 default:
 					
-					if (row == 0)
-						buffer[column] &= ~mask1;	//first row, clear bottom bits of the background
-					else if (row == (n-1))
-						buffer[column] &= ~mask2;	//last row, clear top bits of background
+					if ((row == 0) && (row != (n-1)))			//first row only
+						buffer[column] &= (0x00FF & ~mask1);	//first row, clear bottom bits of the background
+
+					else if ((row == (n-1)) && (row != 0))		//last row only
+						buffer[column] &= (0x00FF & ~mask2);	//last row, clear top bits of background
+					else if ((row == 0) && (row == (n-1)))		//firs and last row
+						buffer[column] &= ~(mask1 & mask2);		//last row, clear top and bottom bits of background
 					else
-						buffer[column] = 0;		//middle row, clear all of the background
+						buffer[column] = 0;			//middle row, clear all of the background
 					
 					buffer[column] |= temp;			//OR it with buffer
 				 break;

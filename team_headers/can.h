@@ -40,7 +40,6 @@ void ClearMailBoxes();
 #define CANMOTORTEMP_BOX	7
 #define CAN12VBUS_BOX	8
 #define TRITIUMVBUS_BOX 9
-#define CELLVOLTRTR_BOX 10
 #define CELLVOLT_BOX	11
 
 #define COMMAND_ID 		0x35
