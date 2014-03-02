@@ -57,8 +57,9 @@ char BatGraphFlag = 0;			//default to bar graph
 float CellVolt[120] = {0};		//holds cell voltages
 char CellGraph[128] = {0};		//holds cell graph
 float MaxCell=0, MinCell=5;		//max and min cell voltages
-char MaxN=23, MinN=5;			//max and min cell numbers
-char MaxB=1, MinB=4;			//max and min BIM numbers
+int MaxN=23, MinN=5;			//max and min cell numbers
+int MaxB=1, MinB=4;				//max and min BIM numbers
+int NCells = 0;					//total number of cells with good data
 float CellChargeV = 4.5;		//Cell Max Charge Voltage
 float CellDeadV = 2.5;			//Cell Max Discharge Voltage
 
@@ -739,9 +740,16 @@ void SensorCovMeasure()
 				SetLEDs(BTN_BACK_GREEN | BTN_DOWN_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
 			else
 				SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_MENU_RED,BTN_ALL_MASK);
+			set_font(Font);		//use small font
+			if(BatGraphFlag)
+			{
+				//print total cells
+				set_cursor(0,0);
+				sprintf(text,"%d",NCells);
+				print_rstr(text,0,0);
+			}
 			//print cell max/min
 			set_cursor(0,56);	//bottom row
-			set_font(Font);		//use small font
 			clear_to_end();		//clear old text
 			sprintf(text,"%#.3f %d:%d %#.3f %d:%d",MaxCell,MaxB,MaxN,MinCell,MinB,MinN);
 			print_rstr(text,0,0);
@@ -772,22 +780,28 @@ void SensorCovMeasure()
 			{	//calculate Histogram
 				//Histogram is 1 bar for each voltage bin [(CellChargV - CellDeadV)/128] volts/bin
 				//with height scaled so 0 pixels is 0 cells and 50 pixels is all the cells
+				//All the cells defined to be all the cells we have data for
 				for(tmp=0;tmp<128;tmp++)	//zero out all elements
 					CellGraph[tmp]=0;
+				NCells = 0;
 
 				tmpFloat = (CellChargeV-CellDeadV)/128.0;	//calculate bin size
 
 				for(tmp=0;tmp<NCELLS;tmp++)	//put each cell in a bin
 				{
-					if (CellVolt[tmp] >= CellDeadV)
+					if (CellVolt[tmp]>0)	//count number of cells with data
+						NCells++;
+
+					if (CellVolt[tmp] >= CellDeadV)	//only histogram those cells with voltages higher than dead
 						CellGraph[(int)((CellVolt[tmp]-CellDeadV)/tmpFloat)] +=1;	//increment bin corresponding to cell
 				}
 
-				//scale bins so 1 = 50, NCELLS = 0
+				//scale bins so 1 = 50, NCells = 0
+				if (NCells == 0) NCells = 1;			//prevent divide by 0
 				for(tmp=0;tmp<128;tmp++)
 				{
 					if(CellGraph[tmp] > 0)
-						CellGraph[tmp] = 50-(int)(CellGraph[tmp]*50.0/NCELLS);
+						CellGraph[tmp] = 50-(int)(CellGraph[tmp]*50.0/NCells);
 				}
 			}
 			else

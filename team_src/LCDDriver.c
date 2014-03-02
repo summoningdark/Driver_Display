@@ -412,9 +412,9 @@ void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 			}
 			if (inv)
 			{
-				f = ~f;
+				f = (0x00FF & ~f);
 			}
-			draw_block(x_offset, y_offset, x_offset+font_space, y_offset+font_h-1,f);	//erase the block
+			draw_block(x_offset, y_offset, x_offset+font_space, y_offset+font_h,f);	//erase the block
 			x_offset +=	font_space;
 		}
 		else
@@ -428,9 +428,9 @@ void print_char(uint8_t txt, int8_t inv, uint8_t reduced)
 				}
 				if (inv)
 				{
-					f = ~f;
+					f = (0x00FF & ~f);
 				}
-				draw_block(x_offset, y_offset, x_offset+font_space, y_offset+font_h-1,f);	//erase the block
+				draw_block(x_offset, y_offset, x_offset+font_space, y_offset+font_h,f);	//erase the block
 
 			x_offset+=font_space;
 		}

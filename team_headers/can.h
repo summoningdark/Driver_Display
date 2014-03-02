@@ -47,7 +47,7 @@ void ClearMailBoxes();
 
 #define HEARTBEAT_BOX 	1
 
-#define CANCORDERHEART_SID		0x96
+#define CANCORDERHEART_SID		0xAA
 #define CANCORDERHEART_TYPE		0x00
 #define CANCORDERHEART_OFFSET	0x00
 
@@ -55,8 +55,8 @@ void ClearMailBoxes();
 #define CANMOTORTEMP_TYPE		0x06
 #define CANMOTORTEMP_OFFSET		0x00
 
-#define CAN12VBUS_SID			0x100
-#define CAN12VBUS_TYPE			0x06
+#define CAN12VBUS_SID			0x106
+#define CAN12VBUS_TYPE			0x02
 #define CAN12VBUS_OFFSET		0x00
 
 #define TRITIUMVBUS_SID			0x400 + 0x02
