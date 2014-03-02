@@ -165,10 +165,12 @@ void SensorCovMeasure()
 		SetLEDs(IND2OFF,IND2MASK);
 	}
 
-//	if (isStopWatchComplete(tritium_watch))
-//		SetLEDs(IND2RED,IND2MASK);
-//	else
-//		SetLEDs(IND2GREEN,IND2MASK);
+//check for super secret two button press to reset LCD
+	if ((ButtonStatus & BTN_UP) & (ButtonStatus & BTN_DOWN))
+	{
+		LCDinit();
+		DisplayRefresh=1;
+	}
 
 	switch(State)
 	{
