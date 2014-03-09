@@ -828,7 +828,7 @@ void del_char()
 	if (reverse==1)
 		f=0xff;	
 
-	draw_block(x_offset, y_offset, x_offset+font_w, y_offset+font_h-1,f);	//erase the block
+	draw_block(x_offset, y_offset, x_offset+font_w, y_offset+font_h,f);	//erase the block
 }
 
 void clear_to_end()
@@ -837,7 +837,7 @@ void clear_to_end()
 	f=0;
 	if (reverse==1)
 		f=0xff;
-	draw_block(x_offset, y_offset, 127, y_offset+font_h-1,f);	//erase the block
+	draw_block(x_offset, y_offset, 127, y_offset+font_h,f);	//erase the block
 }
 
 //draws a block on the screen. Block is described
@@ -1004,8 +1004,8 @@ void bitblt(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t mode, u
 
 					else if ((row == (n-1)) && (row != 0))		//last row only
 						buffer[column] &= (0x00FF & ~mask2);	//last row, clear top bits of background
-					else if ((row == 0) && (row == (n-1)))		//firs and last row
-						buffer[column] &= ~(mask1 & mask2);		//last row, clear top and bottom bits of background
+					else if ((row == 0) && (row == (n-1)))		//first and last row
+						buffer[column] &= (0x00FF & ~(mask1 & mask2));
 					else
 						buffer[column] = 0;			//middle row, clear all of the background
 					

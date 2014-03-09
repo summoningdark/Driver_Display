@@ -654,7 +654,7 @@ void SensorCovMeasure()
 			if(isStopWatchComplete(CANvars[4].Timeout))
 			{
 				status_bar(15,0,115,10,0,2);	//for no data, draw an empty bar
-				set_cursor(64,1);				//center the value
+				set_cursor(54,2);				//center the value
 				set_font(Font);
 				print_cstr("XXX",0,0);			//print some Xs
 			}
@@ -672,8 +672,9 @@ void SensorCovMeasure()
 			if(isStopWatchComplete(CANvars[5].Timeout))
 			{
 				status_bar(15,52,115,63,0,2);	//for no data, draw an empty bar
-				set_cursor(64,54);				//center the value
+
 				set_font(Font);
+				set_cursor(54,54);				//center the value
 				print_cstr("XXX",0,0);			//print some Xs
 			}
 			else

@@ -663,7 +663,7 @@ void PrintCANvariable(uint8_t N, int8_t size)
 
 	if (isStopWatchComplete(CANvars[N].Timeout))
 	{
-		sprintf(text,"XXX");
+		sprintf(text,"----");
 	}
 	else
 	{
