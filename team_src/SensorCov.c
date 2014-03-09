@@ -166,7 +166,7 @@ void SensorCovMeasure()
 	}
 
 //check for super secret two button press to reset LCD
-	if ((ButtonStatus & BTN_UP) & (ButtonStatus & BTN_DOWN))
+	if ((ButtonStatus & BTN_UP) && (ButtonStatus & BTN_DOWN))
 	{
 		LCDinit();
 		DisplayRefresh=1;
