@@ -26,12 +26,6 @@ typedef struct TIME
 	unsigned char seconds:8;
 } TIME_STRUCT;
 
-typedef struct COORDINATES
-{
-	unsigned int Degrees:8;
-	float Minutes;
-} LAT_LONG;
-
 //this union is to make extracting arbitrary variable data out of a CAN message easy
 //first the data bytes from the CAN message are placed in a variable with this union type
 //then the union is shifted using its uint64 representation to bring the correct data bits to the right justified position
@@ -47,7 +41,6 @@ typedef union
 	Uint64	U64;
 	float64	F64;
 	TIME_STRUCT	TIME;
-	LAT_LONG COORD;
 } CAN_DATA_u;
 
 typedef struct
@@ -73,6 +66,7 @@ typedef struct CAN_VAR
 	Uint16 TypeCode;
 	Uint16 Offset;
 	Uint16 New;
+	stopwatch_struct* Timeout;
 	char Name[21];
 	CAN_DATA_u data;
 } can_variable_struct;

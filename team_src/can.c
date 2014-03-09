@@ -6,16 +6,16 @@
  */
 #include "all.h"
 
+extern unsigned int GPSvalid;
 unsigned int mask;
+
 stopwatch_struct* can_watch;
-stopwatch_struct* cancorder_watch;	//stopwatch for cancorder heartbeat timeout
-stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
 
 struct ECAN_REGS ECanaShadow;
 
 #include "CANdbc.h"
 
-can_variable_struct CANvars[8];
+can_variable_struct CANvars[NUM_CANVARS];
 cell_can_union CanCell;
 char CellVoltFlag = 0;
 CellBlock CurrCellBlock;
@@ -48,24 +48,21 @@ void CANSetup()
 	CANvars[3].Offset = CANdbc[VAR4DEFAULT].Offset;
 	CANvars[3].New = 0;
 	memcpy(&CANvars[3].Name, &CANdbcNames[VAR4DEFAULT],22);
-	//CANvars[7] is always CANcorder heartbeat
-	CANvars[7].SID = CANCORDERHEART_SID;
-	CANvars[7].TypeCode = CANCORDERHEART_TYPE;
-	CANvars[7].Offset = CANCORDERHEART_OFFSET;
-	CANvars[7].New = 0;
-	memcpy(&CANvars[7].Name, "CANcorder Heartbeat",20);
+
 	//CANvars[4] is always motor temperature
 	CANvars[4].SID = CANMOTORTEMP_SID;
 	CANvars[4].TypeCode = CANMOTORTEMP_TYPE;
 	CANvars[4].Offset = CANMOTORTEMP_OFFSET;
 	CANvars[4].New = 0;
 	memcpy(&CANvars[4].Name, "Motor Temp",11);
+
 	//CANvars[5] is always 12V bus voltage
 	CANvars[5].SID = CAN12VBUS_SID;
 	CANvars[5].TypeCode = CAN12VBUS_TYPE;
 	CANvars[5].Offset = CAN12VBUS_OFFSET;
 	CANvars[5].New = 0;
 	memcpy(&CANvars[5].Name, "12V Bus Voltage",16);
+
 	//CANvars[6] is always Tritium bus voltage
 	CANvars[6].SID = TRITIUMVBUS_SID;
 	CANvars[6].TypeCode = TRITIUMVBUS_TYPE;
@@ -73,9 +70,28 @@ void CANSetup()
 	CANvars[6].New = 0;
 	memcpy(&CANvars[6].Name, "Tritium Bus Voltage",20);
 
+	//CANvars[7] is always GPS Lat and validity
+	CANvars[7].SID = GPSLAT_SID;
+	CANvars[7].TypeCode = GPSLAT_TYPE;
+	CANvars[7].Offset = GPSLAT_OFFSET;
+	CANvars[7].New = 0;
+	memcpy(&CANvars[7].Name, "GPS Latitude",13);
+
+	//CANvars[NUM_CANVARS - 1] is always CANcorder heartbeat
+	CANvars[NUM_CANVARS - 1].SID = CANCORDERHEART_SID;
+	CANvars[NUM_CANVARS - 1].TypeCode = CANCORDERHEART_TYPE;
+	CANvars[NUM_CANVARS - 1].Offset = CANCORDERHEART_OFFSET;
+	CANvars[NUM_CANVARS - 1].New = 0;
+	memcpy(&CANvars[NUM_CANVARS - 1].Name, "CANcorder Heartbeat",20);
+
 	//clear all CANvars data fields
-	for(i=0;i<8;i++)
+	for(i=0;i<NUM_CANVARS;i++)
 		CANvars[i].data.U64 = 0LL;
+
+	//init all CANvars timeouts
+	for(i=0;i<NUM_CANVARS;i++)
+			CANvars[i].Timeout = StartStopWatch(500000L);	//CAN variables timeout after 5 seconds
+
 
 	InitECanaGpio();
 	InitECana();
@@ -160,61 +176,71 @@ void CANSetup()
 	ECanaShadow.CANMIM.bit.MIM5  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL5  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//CANcorder heartbeat RECEIVE
+	//Motor Temp RECEIVE
 	ECanaMboxes.MBOX6.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX6.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX6.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX6.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX6.MSGID.bit.STDMSGID = CANCORDERHEART_SID;
+	ECanaMboxes.MBOX6.MSGID.bit.STDMSGID = CANMOTORTEMP_SID;
 	ECanaShadow.CANMD.bit.MD6 = 1;			//receive
 	ECanaShadow.CANME.bit.ME6 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM6  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL6  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//Motor Temp RECEIVE
+	//12V Bus voltage RECEIVE
 	ECanaMboxes.MBOX7.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX7.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX7.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX7.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX7.MSGID.bit.STDMSGID = CANMOTORTEMP_SID;
+	ECanaMboxes.MBOX7.MSGID.bit.STDMSGID = CAN12VBUS_SID;
 	ECanaShadow.CANMD.bit.MD7 = 1;			//receive
 	ECanaShadow.CANME.bit.ME7 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM7  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL7  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//12V Bus voltage RECEIVE
+	//Tritium Bus voltage RECEIVE
 	ECanaMboxes.MBOX8.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX8.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX8.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX8.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX8.MSGID.bit.STDMSGID = CAN12VBUS_SID;
+	ECanaMboxes.MBOX8.MSGID.bit.STDMSGID = TRITIUMVBUS_SID;
 	ECanaShadow.CANMD.bit.MD8 = 1;			//receive
 	ECanaShadow.CANME.bit.ME8 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM8  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL8  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//Tritium Bus voltage RECEIVE
+	//GPS Latitude and Validity RECEIVE
 	ECanaMboxes.MBOX9.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX9.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX9.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX9.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX9.MSGID.bit.STDMSGID = TRITIUMVBUS_SID;
+	ECanaMboxes.MBOX9.MSGID.bit.STDMSGID = GPSLAT_SID;
 	ECanaShadow.CANMD.bit.MD9 = 1;			//receive
 	ECanaShadow.CANME.bit.ME9 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM9  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL9  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//Cell voltage RECEIVE
-	ECanaMboxes.MBOX11.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX11.MSGID.bit.AME = 0;	// all bit must match
-	ECanaMboxes.MBOX11.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
-	ECanaMboxes.MBOX11.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX11.MSGID.bit.STDMSGID = 0x310;
-	ECanaShadow.CANMD.bit.MD11 = 1;			//receive
-	ECanaShadow.CANME.bit.ME11 = 1;			//enable
-	ECanaShadow.CANMIM.bit.MIM11  = 1; 		//int enable
-	ECanaShadow.CANMIL.bit.MIL11  = 1;  	// Int.-Level MB#0  -> I1EN
+	//CANcorder heartbeat RECEIVE
+	ECanaMboxes.MBOX30.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX30.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX30.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX30.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX30.MSGID.bit.STDMSGID = CANCORDERHEART_SID;
+	ECanaShadow.CANMD.bit.MD30 = 1;			//receive
+	ECanaShadow.CANME.bit.ME30 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM30  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL30  = 1; 		// Int.-Level MB#0  -> I1EN
 
+	//Cell voltage RECEIVE
+	ECanaMboxes.MBOX31.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX31.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX31.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX31.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX31.MSGID.bit.STDMSGID = 0x310;
+	ECanaShadow.CANMD.bit.MD31 = 1;			//receive
+	ECanaShadow.CANME.bit.ME31 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM31  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL31  = 1;  	// Int.-Level MB#0  -> I1EN
 
 	ECanaRegs.CANGAM.all = ECanaShadow.CANGAM.all;
 	ECanaRegs.CANGIM.all = ECanaShadow.CANGIM.all;
@@ -232,8 +258,6 @@ void CANSetup()
     PieCtrlRegs.PIEIER9.bit.INTx6= 1;
 
     can_watch = StartStopWatch(SENDCAN_STOPWATCH);
-    cancorder_watch = StartStopWatch(CANCORDER_TIMEOUT);
-    tritium_watch = StartStopWatch(TRITIUM_TIMEOUT);
 }
 
 void ClearMailBoxes()
@@ -403,6 +427,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[0].data.U32 = ECanaMboxes.MBOX2.MDL.all;
 		CANvars[0].data.U64 = CANvars[0].data.U64 >> CANvars[0].Offset;
 		CANvars[0].New = 1;
+		StopWatchRestart(CANvars[0].Timeout);
 		ECanaRegs.CANRMP.bit.RMP2 = 1;
 	break;
 
@@ -411,7 +436,8 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[1].data.U64 = CANvars[1].data.U64 << 32L;
 		CANvars[1].data.U32 = ECanaMboxes.MBOX3.MDL.all;
 		CANvars[1].data.U64 = CANvars[1].data.U64 >> CANvars[1].Offset;
-		CANvars[2].New = 1;
+		CANvars[1].New = 1;
+		StopWatchRestart(CANvars[1].Timeout);
 		ECanaRegs.CANRMP.bit.RMP3 = 1;
 	break;
 
@@ -421,6 +447,7 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[2].data.U32 = ECanaMboxes.MBOX4.MDL.all;
 		CANvars[2].data.U64 = CANvars[2].data.U64 >> CANvars[2].Offset;
 		CANvars[2].New = 1;
+		StopWatchRestart(CANvars[2].Timeout);
 		ECanaRegs.CANRMP.bit.RMP4 = 1;
 	break;
 
@@ -430,62 +457,75 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[3].data.U32 = ECanaMboxes.MBOX5.MDL.all;
 		CANvars[3].data.U64 = CANvars[3].data.U64 >> CANvars[3].Offset;
 		CANvars[3].New = 1;
+		StopWatchRestart(CANvars[3].Timeout);
 		ECanaRegs.CANRMP.bit.RMP5 = 1;
 	break;
 
-	case CANCORDERHEART_BOX:
-		StopWatchRestart(cancorder_watch);
-		CANvars[7].data.U32 = ECanaMboxes.MBOX6.MDH.all;
-		CANvars[7].data.U64 = CANvars[7].data.U64 << 32L;
-		CANvars[7].data.U32 = ECanaMboxes.MBOX6.MDL.all;
-		CANvars[7].data.U64 = CANvars[7].data.U64 >> CANvars[6].Offset;
-		CANvars[7].New = 1;
+	case CANMOTORTEMP_BOX:
+		CANvars[4].data.U32 = ECanaMboxes.MBOX6.MDH.all;
+		CANvars[4].data.U64 = CANvars[4].data.U64 << 32L;
+		CANvars[4].data.U32 = ECanaMboxes.MBOX6.MDL.all;
+		CANvars[4].data.U64 = CANvars[4].data.U64 >> CANvars[4].Offset;
+		CANvars[4].New = 1;
+		StopWatchRestart(CANvars[4].Timeout);
 		ECanaRegs.CANRMP.bit.RMP6 = 1;
 	break;
 
-	case CANMOTORTEMP_BOX:
-		StopWatchRestart(tritium_watch);
-		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDH.all;
-		CANvars[4].data.U64 = CANvars[4].data.U64 << 32L;
-		CANvars[4].data.U32 = ECanaMboxes.MBOX7.MDL.all;
-		CANvars[4].data.U64 = CANvars[4].data.U64 >> CANvars[4].Offset;
-		CANvars[4].New = 1;
+	case CAN12VBUS_BOX:
+		CANvars[5].data.U32 = ECanaMboxes.MBOX7.MDH.all;
+		CANvars[5].data.U64 = CANvars[5].data.U64 << 32L;
+		CANvars[5].data.U32 = ECanaMboxes.MBOX7.MDL.all;
+		CANvars[5].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
+		CANvars[5].New = 1;
+		StopWatchRestart(CANvars[5].Timeout);
 		ECanaRegs.CANRMP.bit.RMP7 = 1;
 	break;
 
-	case CAN12VBUS_BOX:
-		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDH.all;
-		CANvars[5].data.U64 = CANvars[5].data.U64 << 32L;
-		CANvars[5].data.U32 = ECanaMboxes.MBOX8.MDL.all;
-		CANvars[5].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
-		CANvars[5].New = 1;
+	case TRITIUMVBUS_BOX:
+		CANvars[6].data.U32 = ECanaMboxes.MBOX8.MDH.all;
+		CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
+		CANvars[6].data.U32 = ECanaMboxes.MBOX8.MDL.all;
+		CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
+		CANvars[6].New = 1;
+		StopWatchRestart(CANvars[6].Timeout);
 		ECanaRegs.CANRMP.bit.RMP8 = 1;
 	break;
 
-	case TRITIUMVBUS_BOX:
-		StopWatchRestart(tritium_watch);
-		CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDH.all;
-		CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
-		CANvars[6].data.U32 = ECanaMboxes.MBOX9.MDL.all;
-		CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
-		CANvars[6].New = 1;
-		ECanaRegs.CANRMP.bit.RMP9 = 1;
+	case GPSLAT_BOX:
+		CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDH.all;
+		CANvars[7].data.U64 = CANvars[7].data.U64 << 32L;
+		CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDL.all;
+		//need special check here for GPS lock bit
+		GPSvalid = 0x00001 & (CANvars[7].data.U64 >> 32L);
+		CANvars[7].data.U64 = CANvars[7].data.U64 >> CANvars[6].Offset;
+		CANvars[7].New = 1;
+		StopWatchRestart(CANvars[7].Timeout);
+		ECanaRegs.CANRMP.bit.RMP8 = 1;
+	break;
+
+	case CANCORDERHEART_BOX:
+		CANvars[NUM_CANVARS - 1].data.U32 = ECanaMboxes.MBOX30.MDH.all;
+		CANvars[NUM_CANVARS - 1].data.U64 = CANvars[NUM_CANVARS - 1].data.U64 << 32L;
+		CANvars[NUM_CANVARS - 1].data.U32 = ECanaMboxes.MBOX30.MDL.all;
+		CANvars[NUM_CANVARS - 1].data.U64 = CANvars[NUM_CANVARS - 1].data.U64 >> CANvars[NUM_CANVARS - 1].Offset;
+		CANvars[NUM_CANVARS - 1].New = 1;
+		StopWatchRestart(CANvars[NUM_CANVARS - 1].Timeout);
+		ECanaRegs.CANRMP.bit.RMP30 = 1;
 	break;
 
 	case CELLVOLT_BOX:
-		CanCell.U32 = ECanaMboxes.MBOX11.MDL.all;		//copy can data into union for decoding
+		CanCell.U32 = ECanaMboxes.MBOX31.MDL.all;		//copy can data into union for decoding
 		CurrCellBlock.Volt[0] = CanCell.data.C1mv/1000.0;
 		CurrCellBlock.Balance[0] = CanCell.data.C1b;
 		CurrCellBlock.Volt[1] = CanCell.data.C2mv/1000.0;
 		CurrCellBlock.Balance[1] = CanCell.data.C2b;
-		CanCell.U32 = ECanaMboxes.MBOX11.MDH.all;		//copy can data into union for decoding
+		CanCell.U32 = ECanaMboxes.MBOX31.MDH.all;		//copy can data into union for decoding
 		CurrCellBlock.Volt[2] = CanCell.data.C1mv/1000.0;
 		CurrCellBlock.Balance[2] = CanCell.data.C1b;
 		CurrCellBlock.Volt[3] = CanCell.data.C2mv/1000.0;
 		CurrCellBlock.Balance[3] = CanCell.data.C2b;
 		CellVoltFlag = 2;								//flag reception
-
-		ECanaRegs.CANRMP.bit.RMP11 = 1;
+		ECanaRegs.CANRMP.bit.RMP31 = 1;
 	break;
   }
 

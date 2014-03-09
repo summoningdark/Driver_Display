@@ -661,92 +661,97 @@ void PrintCANvariable(uint8_t N, int8_t size)
 		memcpy(&TempVar, &CANvars[N], sizeof(can_variable_struct));
 	EINT;
 
-
-	//create string from variable
-	switch(TempVar.TypeCode)
+	if (isStopWatchComplete(CANvars[N].Timeout))
 	{
-	case 0:			//int8
-		if(TempVar.data.U16 & 0x0080)								//check sign bit in bit position 8
-			sprintf(text,"%d",(int)(0xFF00 | TempVar.data.U16));	//int8 is negative, sign extend the int16
-		else
-			sprintf(text,"%d",(int)(0x00FF & TempVar.data.U16));	//int8 is positive, clear the upper 8 bits
-
-	break;
-	case 1:			//uint8
-		sprintf(text,"%u",(0x00FF & TempVar.data.U16));
-	break;
-	case 2:			//int16
-		sprintf(text,"%d",TempVar.data.I16);
-	break;
-	case 3:			//uint16
-		sprintf(text,"%u",TempVar.data.U16);
-	break;
-	case 4:			//int32
-		sprintf(text,"%ld",TempVar.data.I32);
-	break;
-	case 5:			//uint32
-		sprintf(text,"%lu",TempVar.data.U32);
-	break;
-	case 6:			//float 32
-		//to maximize the precision of float32 printing with large fonts, print with different formats depending on value and font
-		if (size == 2)
-		{	//largest font, maximum of 4 characters and a decimal
-			if (TempVar.data.F64 >= 0)
-				length = 5;		//positive number print with 4 significant digits
-			else
-				length = 4;
-		}
-		else if (size == 1)
-		{	//medium font, maximum of ### characters and a decimal
-			if (TempVar.data.F64 >= 0)
-				length = 7;		//positive number print with 4 significant digits
-			else
-				length = 6;
-		}
-		else
-		{	//smallest font, maximum of 20 characters and a decimal
-				length = 6;		//positive number print with 4 significant digits
-		}
-		sprintf(text,"%.*G",length,TempVar.data.F32);
-	break;
-	case 7:			//int64
-			sprintf(text,"%lld",TempVar.data.I64);
-	break;
-	case 8:			//uint64
-			sprintf(text,"%llu",TempVar.data.U64);
-	break;
-	case 9:			//float64
-		//to maximize the precision of float64 printing with large fonts, print with different formats depending on value and font
-		if (size == 2)
-		{	//largest font, maximum of 4 characters and a decimal
-			if (TempVar.data.F64 >= 0)
-				length = 5;		//positive number print with 4 significant digits
-			else
-				length = 4;
-		}
-		else if (size == 1)
-		{	//medium font, maximum of ### characters and a decimal
-			if (TempVar.data.F64 >= 0)
-				length = 7;		//positive number print with 4 significant digits
-			else
-				length = 6;
-		}
-		else
-		{	//smallest font, maximum of 20 characters and a decimal
-				length = 6;		//positive number print with 4 significant digits
-		}
-		sprintf(text,"%.*G",length,TempVar.data.F64);		//negative numbers print with 3 significant digits
-	break;
-
-	case 10:	//Time
-		sprintf(text,"%d:%d:%d",TempVar.data.TIME.hours,TempVar.data.TIME.minutes,TempVar.data.TIME.seconds);
-	break;
-
-	case 11:	//GPS Lat/Long
-		sprintf(text,"%d\"%f'",TempVar.data.COORD.Degrees,TempVar.data.COORD.Minutes);
-	break;
+		sprintf(text,"XXX");
 	}
+	else
+	{
+		//create string from variable
+		switch(TempVar.TypeCode)
+		{
+		case 0:			//int8
+			if(TempVar.data.U16 & 0x0080)								//check sign bit in bit position 8
+				sprintf(text,"%d",(int)(0xFF00 | TempVar.data.U16));	//int8 is negative, sign extend the int16
+			else
+				sprintf(text,"%d",(int)(0x00FF & TempVar.data.U16));	//int8 is positive, clear the upper 8 bits
 
+		break;
+		case 1:			//uint8
+			sprintf(text,"%u",(0x00FF & TempVar.data.U16));
+		break;
+		case 2:			//int16
+			sprintf(text,"%d",TempVar.data.I16);
+		break;
+		case 3:			//uint16
+			sprintf(text,"%u",TempVar.data.U16);
+		break;
+		case 4:			//int32
+			sprintf(text,"%ld",TempVar.data.I32);
+		break;
+		case 5:			//uint32
+			sprintf(text,"%lu",TempVar.data.U32);
+		break;
+		case 6:			//float 32
+			//to maximize the precision of float32 printing with large fonts, print with different formats depending on value and font
+			if (size == 2)
+			{	//largest font, maximum of 4 characters and a decimal
+				if (TempVar.data.F64 >= 0)
+					length = 5;		//positive number print with 4 significant digits
+				else
+					length = 4;
+			}
+			else if (size == 1)
+			{	//medium font, maximum of ### characters and a decimal
+				if (TempVar.data.F64 >= 0)
+					length = 7;		//positive number print with 4 significant digits
+				else
+					length = 6;
+			}
+			else
+			{	//smallest font, maximum of 20 characters and a decimal
+					length = 6;		//positive number print with 4 significant digits
+			}
+			sprintf(text,"%.*G",length,TempVar.data.F32);
+		break;
+		case 7:			//int64
+				sprintf(text,"%lld",TempVar.data.I64);
+		break;
+		case 8:			//uint64
+				sprintf(text,"%llu",TempVar.data.U64);
+		break;
+		case 9:			//float64
+			//to maximize the precision of float64 printing with large fonts, print with different formats depending on value and font
+			if (size == 2)
+			{	//largest font, maximum of 4 characters and a decimal
+				if (TempVar.data.F64 >= 0)
+					length = 5;		//positive number print with 4 significant digits
+				else
+					length = 4;
+			}
+			else if (size == 1)
+			{	//medium font, maximum of ### characters and a decimal
+				if (TempVar.data.F64 >= 0)
+					length = 7;		//positive number print with 4 significant digits
+				else
+					length = 6;
+			}
+			else
+			{	//smallest font, maximum of 20 characters and a decimal
+					length = 6;		//positive number print with 4 significant digits
+			}
+			sprintf(text,"%.*G",length,TempVar.data.F64);		//negative numbers print with 3 significant digits
+		break;
+
+		case 10:	//Time
+			sprintf(text,"%d:%d:%d",TempVar.data.TIME.hours,TempVar.data.TIME.minutes,TempVar.data.TIME.seconds);
+		break;
+
+		case 11:	//GPS Lat/Long
+			//sprintf(text,"%d\"%f'",TempVar.data.COORD.Degrees,TempVar.data.COORD.Minutes);
+		break;
+		}
+	}
 	//pick actual font size depending on length of string
 
 	length = 0;

@@ -31,16 +31,17 @@ void ClearMailBoxes();
 
 //todo USER: DEFINE IDs and mailboxes for output
 
-#define COMMAND_BOX 	0
-#define VARIABLE1_BOX	2
-#define VARIABLE2_BOX	3
-#define VARIABLE3_BOX	4
-#define VARIABLE4_BOX	5
-#define CANCORDERHEART_BOX	6
-#define CANMOTORTEMP_BOX	7
-#define CAN12VBUS_BOX	8
-#define TRITIUMVBUS_BOX 9
-#define CELLVOLT_BOX	11
+#define COMMAND_BOX 		0
+#define VARIABLE1_BOX		2
+#define VARIABLE2_BOX		3
+#define VARIABLE3_BOX		4
+#define VARIABLE4_BOX		5
+#define CANMOTORTEMP_BOX	6
+#define CAN12VBUS_BOX		7
+#define TRITIUMVBUS_BOX 	8
+#define GPSLAT_BOX			9
+#define CANCORDERHEART_BOX	30
+#define CELLVOLT_BOX		11
 
 #define COMMAND_ID 		0x35
 #define HEARTBEAT_ID 	0x34
@@ -59,14 +60,17 @@ void ClearMailBoxes();
 #define CAN12VBUS_TYPE			0x02
 #define CAN12VBUS_OFFSET		0x00
 
+#define GPSLAT_SID				0x10b
+#define GPSLAT_TYPE				0x06
+#define GPSLAT_OFFSET			0x00
+
 #define TRITIUMVBUS_SID			0x400 + 0x02
 #define TRITIUMVBUS_TYPE		0x06
 #define TRITIUMVBUS_OFFSET		0x00
 
-#define CANCORDER_TIMEOUT		150000L
-#define TRITIUM_TIMEOUT			100000L
+#define NUM_CANVARS 9
+extern can_variable_struct CANvars[NUM_CANVARS];
 
-extern can_variable_struct CANvars[8];
 extern char CellVoltFlag;
 extern CellBlock CurrCellBlock;
 

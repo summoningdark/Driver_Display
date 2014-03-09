@@ -20,8 +20,7 @@ data_struct data_temp;
 stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
 stopwatch_struct* CellVolt_watch;		//stopwatch for cell voltage timeouts
 stopwatch_struct* CellTime_watch;		//stopwatch for cell voltage measurement timing
-extern stopwatch_struct* cancorder_watch;	//stopwatch for cancorder heartbeat timeout
-extern stopwatch_struct* tritium_watch;	//stopwatch for tritium messages timeout
+unsigned int GPSvalid = 0;				//flag for GPS lock
 
 //Defines for States
 #define CV1			1
@@ -141,22 +140,38 @@ void SensorCovMeasure()
 	struct ECAN_REGS ECanaShadow;	//shadow structure for modifying CAN registers
 	static can_variable_list_struct tmpCANvar;
 
-	//always check for cancorder and tritium status
-	if (isStopWatchComplete(cancorder_watch))
+	//always check for cancorder, GPS and tritium status
+	tmp = 3;
+	if (isStopWatchComplete(CANvars[NUM_CANVARS - 1].Timeout))
+		tmp &= 0xFE;	//if Cancorder timed out, clear bit 0 in tmp
+	if (GPSvalid == 0)
+		tmp &= 0xFD;	//if GPS not valid, clear bit 1 in tmp
+	switch (tmp)
+	{
+	case 0:		//no Cancorder or GPS
+		SetLEDs(IND1OFF,IND1MASK);
+	break;
+	case 1:		//Cancorder but no GPS
 		SetLEDs(IND1RED,IND1MASK);
-	else
+	break;
+	case 2:		//GPS but no Cancorder
+		SetLEDs(IND1OFF,IND1MASK);
+	break;
+	case 3:		//Both Cancorder and GPS
 		SetLEDs(IND1GREEN,IND1MASK);
+	break;
+	}
 
 
 	if (CANvars[6].data.F32 < 50)
 	{
-		SetLEDs(IND2RED,IND2MASK);
-	}
-	else if (CANvars[6].data.F32 < 350)
-	{
 		SetLEDs(IND2YELLOW,IND2MASK);
 	}
-	else if (CANvars[6].data.F32 < 500)
+	else if (CANvars[6].data.F32 < 300)
+	{
+		SetLEDs(IND2RED,IND2MASK);
+	}
+	else if (CANvars[6].data.F32 < 501)
 	{
 		SetLEDs(IND2GREEN,IND2MASK);
 	}
@@ -589,7 +604,7 @@ void SensorCovMeasure()
 			{
 				SetLEDs(BTN_BACK_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
 			}
-			if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+			if(CANvars[0].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[0].Timeout))	//if new can data, data timeout, or flag for redraw
 			{
 				DisplayRefresh=0;					//just redrew the display
 				set_cursor(0,10);					//center the value
@@ -625,29 +640,47 @@ void SensorCovMeasure()
 			draw_sprite(0,54,0,7);	//draw 12v battery icon 0
 		}
 
-		if(CANvars[0].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+		if(CANvars[0].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[0].Timeout))	//if new can data or flag for redraw
 		{
 			set_cursor(0,23);					//center the value
 			PrintCANvariable(0, 1);				//update the display
 			CANvars[0].New = 0;					//variable is no longer new
 		}
 
-		if(CANvars[4].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+		if(CANvars[4].New == 1 || DisplayRefresh  || isStopWatchComplete(CANvars[4].Timeout))	//if new can data or flag for redraw
 		{
 				//do percent bar for motor temp
 				//max motor temp is 100 so this is easy
+			if(isStopWatchComplete(CANvars[4].Timeout))
+			{
+				status_bar(15,0,115,10,0,2);	//for no data, draw an empty bar
+				set_cursor(64,1);				//center the value
+				set_font(Font);
+				print_cstr("XXX",0,0);			//print some Xs
+			}
+			else
+			{
 				status_bar(15,0,115,10,(int)CANvars[4].data.F32,2);
+			}
 				CANvars[4].New = 0;
-
 		}
 
-		if(CANvars[5].New == 1 || DisplayRefresh)	//if new can data or flag for redraw
+		if(CANvars[5].New == 1 || DisplayRefresh  || isStopWatchComplete(CANvars[5].Timeout))	//if new can data or flag for redraw
 		{
 			DisplayRefresh=0;					//just redrew the display
-			//do status bar for 12V (get from wavesculptor)
-			status_bar(15,54,115,63,(int)(CANvars[5].data.F32/.14),2);
-			CANvars[5].New = 0;
-
+			//do status bar for 12V
+			if(isStopWatchComplete(CANvars[5].Timeout))
+			{
+				status_bar(15,52,115,63,0,2);	//for no data, draw an empty bar
+				set_cursor(64,54);				//center the value
+				set_font(Font);
+				print_cstr("XXX",0,0);			//print some Xs
+			}
+			else
+			{
+				status_bar(15,52,115,63,(int)(CANvars[5].data.F32/.14),2);
+				CANvars[5].New = 0;
+			}
 		}
 
 		switch(GetButtonPress())
@@ -679,11 +712,11 @@ void SensorCovMeasure()
 			set_font(Font);		//use small font
 			for(tmp=0;tmp<4;tmp++)
 			{
-				if(CANvars[d4N[tmp]].New == 1 || DisplayRefresh)							//update first displayed variable
+				if(CANvars[d4N[tmp]].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[d4N[tmp]].Timeout))							//update first displayed variable
 				{
 					//variable label, print in inverse if d4S == tmp
 					print_char(tmp+49,(d4S==tmp),0);										//print Watch label
-					print_char(' ',(d4S==tmp),0);;
+					print_char(' ',(d4S==tmp),0);
 					print_rstr(&CANvars[d4N[tmp]].Name[0],(d4S==tmp),0);					//print Variable Name
 					if (x_offset > 0)
 					{
