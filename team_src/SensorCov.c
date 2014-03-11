@@ -133,6 +133,7 @@ void LatchStruct()
 void SensorCovMeasure()
 {
 	static int State=RACEMODE, d4S=0, DisplayRefresh = 1,ManID=0,ManDigit=2,ManOffset=0;
+	static int RaceVar = 0;
 	static int d4N[4]={0,1,2,3};
 	int tmp,tmp2;
 	char text[80];
@@ -602,14 +603,20 @@ void SensorCovMeasure()
 	case RACEMODE:			//default state (race)
 			if (DisplayRefresh)		//do initial screen drawing
 			{
-				SetLEDs(BTN_BACK_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
+				SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_SELECT_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
 			}
-			if(CANvars[0].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[0].Timeout))	//if new can data, data timeout, or flag for redraw
+			if(CANvars[RaceVar].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[RaceVar].Timeout))	//if new can data, data timeout, or flag for redraw
 			{
 				DisplayRefresh=0;					//just redrew the display
 				set_cursor(0,10);					//center the value
-				PrintCANvariable(0, 2);				//update the display
-				CANvars[0].New = 0;					//variable is no longer new
+				PrintCANvariable(RaceVar, 2);				//update the display
+				clear_to_end();
+				CANvars[RaceVar].New = 0;					//variable is no longer new
+				set_font(Font);
+				set_cursor(0,55);
+				print_rstr(&CANvars[RaceVar].Name[0],0,0);//print Variable Name
+				clear_to_end();
+
 			}
 
 			switch(GetButtonPress())
@@ -626,6 +633,14 @@ void SensorCovMeasure()
 				GpioDataRegs.GPATOGGLE.bit.GPIO16 = 1;	//toggle backlight
 				State = RACEMODE;					//stay on this state
 				break;
+			case BTN_UP:
+				if (--RaceVar == -1) RaceVar = (NUM_CANVARS - 2);
+				DisplayRefresh = 1;					//Flag Display for update
+			break;
+			case BTN_SELECT:
+				if (++RaceVar == (NUM_CANVARS - 1)) RaceVar = 0;
+				DisplayRefresh = 1;					//Flag Display for update
+			break;
 			default:
 				State = RACEMODE;					//stay on this state
 			}
@@ -644,6 +659,7 @@ void SensorCovMeasure()
 		{
 			set_cursor(0,23);					//center the value
 			PrintCANvariable(0, 1);				//update the display
+			clear_to_end();
 			CANvars[0].New = 0;					//variable is no longer new
 		}
 
@@ -759,11 +775,11 @@ void SensorCovMeasure()
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			case BTN_SELECT:		//this button increments the index of the highlighted variable
-				if (++d4N[d4S] == 7) d4N[d4S] = 0;
+				if (++d4N[d4S] == (NUM_CANVARS - 1)) d4N[d4S] = 0;
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			case BTN_BACK:			//this button decrements the index of the highlighted variable
-				if (--d4N[d4S] == -1) d4N[d4S] = 6;
+				if (--d4N[d4S] == -1) d4N[d4S] = (NUM_CANVARS - 2);
 				DisplayRefresh = 1;					//Flag Display for update
 				break;
 			}

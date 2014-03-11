@@ -7,12 +7,12 @@
 
 #include "data.h"
 
-#define NUMCANVARS 23
+#define NUMdbcVARS 24
 
 #define VAR1DEFAULT 6
-#define VAR2DEFAULT 1
-#define VAR3DEFAULT 2
-#define VAR4DEFAULT 3
+#define VAR2DEFAULT 2
+#define VAR3DEFAULT 5
+#define VAR4DEFAULT 8
 
 
 //This holds all the CAN variables on our system. the format is simple, each array element is a struct of {uint16,uint16,uint16}
@@ -31,11 +31,12 @@
 // 9 float64
 // 10 Time
 // 11 Latitude/Longitude coordinate
-const can_variable_list_struct CANdbc[NUMCANVARS]={	{0x401,5,0},
+const can_variable_list_struct CANdbc[NUMdbcVARS]={	{0x401,5,0},
 													{0x402,6,32},
 													{0x403,6,0},
 													{0x403,6,32},
 													{0x404,6,0},
+													{0x100,6,0},
 													{0x40E,6,32},
 													{0x40E,6,0},
 													{0x501,6,32},
@@ -58,11 +59,12 @@ const can_variable_list_struct CANdbc[NUMCANVARS]={	{0x401,5,0},
 
 //always end the CANdbcNames array with an empty string, the menu function needs this to know how many entries there are
 //note only 21 characters are printable on a line
-const char CANdbcNames[NUMCANVARS+1][22]={	"Tritium Flags",
+const char CANdbcNames[NUMdbcVARS+1][22]={	"Tritium Flags",
 				"Tritium Bus I",
 				"Motor RPM",
 				"Speed",
 				"Motor Current",
+				"Frame Resistance",
 				"Bus AmpHour",
 				"Trip Odo (m)",
 				"Command Current",
