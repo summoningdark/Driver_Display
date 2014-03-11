@@ -163,8 +163,11 @@ void SensorCovMeasure()
 	break;
 	}
 
-
-	if (CANvars[6].data.F32 < 50)
+	if (isStopWatchComplete(CANvars[6].Timeout))
+	{
+		SetLEDs(IND2OFF,IND2MASK);
+	}
+	else if (CANvars[6].data.F32 < 50)
 	{
 		SetLEDs(IND2YELLOW,IND2MASK);
 	}
@@ -172,13 +175,9 @@ void SensorCovMeasure()
 	{
 		SetLEDs(IND2RED,IND2MASK);
 	}
-	else if (CANvars[6].data.F32 < 501)
-	{
-		SetLEDs(IND2GREEN,IND2MASK);
-	}
 	else
 	{
-		SetLEDs(IND2OFF,IND2MASK);
+		SetLEDs(IND2GREEN,IND2MASK);
 	}
 
 //check for super secret two button press to reset LCD
