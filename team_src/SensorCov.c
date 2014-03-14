@@ -609,12 +609,12 @@ void SensorCovMeasure()
 				DisplayRefresh=0;					//just redrew the display
 				set_cursor(0,10);					//center the value
 				PrintCANvariable(RaceVar, 2);				//update the display
-				clear_to_end();
+				if (x_offset > 0) clear_to_end();
 				CANvars[RaceVar].New = 0;					//variable is no longer new
 				set_font(Font);
 				set_cursor(0,55);
 				print_rstr(&CANvars[RaceVar].Name[0],0,0);//print Variable Name
-				clear_to_end();
+				if (x_offset > 0) clear_to_end();
 
 			}
 
@@ -658,7 +658,7 @@ void SensorCovMeasure()
 		{
 			set_cursor(0,23);					//center the value
 			PrintCANvariable(0, 1);				//update the display
-			clear_to_end();
+			if (x_offset > 0) clear_to_end();
 			CANvars[0].New = 0;					//variable is no longer new
 		}
 
