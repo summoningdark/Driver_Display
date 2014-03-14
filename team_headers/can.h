@@ -57,7 +57,7 @@ void ClearMailBoxes();
 #define CANMOTORTEMP_OFFSET		0x00
 
 #define CAN12VBUS_SID			0x106
-#define CAN12VBUS_TYPE			0x02
+#define CAN12VBUS_TYPE			0x06
 #define CAN12VBUS_OFFSET		0x00
 
 #define GPSLAT_SID				0x10b
