@@ -20,6 +20,26 @@ cell_can_union CanCell;
 char CellVoltFlag = 0;
 CellBlock CurrCellBlock;
 
+
+void BUS_OFF()
+{
+	EALLOW;
+	ECanaShadow.CANMC.all = ECanaRegs.CANMC.all;
+
+
+	ECanaShadow.CANMC.bit.CCR = 0;
+	ECanaRegs.CANMC.all = ECanaShadow.CANMC.all;
+
+	ECanaShadow.CANES.all = ECanaRegs.CANES.all;
+	while (ECanaShadow.CANES.bit.CCE != 0)
+	{
+		ECanaShadow.CANES.all = ECanaRegs.CANES.all;
+	}
+
+	EDIS;
+}
+
+
 void CANSetup()
 {
 	int i;
@@ -366,6 +386,13 @@ void SendCAN(unsigned int Mbox)
 	ECanaRegs.CANTRS.all = mask;
 
 	//todo Nathan: calibrate sendcan stopwatch
+
+	ECanaShadow.CANMC.all = ECanaRegs.CANMC.all;
+	if (ECanaShadow.CANMC.bit.CCR == 1)
+	{
+		BUS_OFF();
+	}
+
 	StopWatchRestart(can_watch);
 
 	do{ECanaShadow.CANTA.all = ECanaRegs.CANTA.all;}
@@ -492,15 +519,15 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	break;
 
 	case GPSLAT_BOX:
-		CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDH.all;
+		CANvars[7].data.U32 = ECanaMboxes.MBOX9.MDH.all;
 		CANvars[7].data.U64 = CANvars[7].data.U64 << 32L;
-		CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDL.all;
+		CANvars[7].data.U32 = ECanaMboxes.MBOX9.MDL.all;
 		//need special check here for GPS lock bit
 		GPSvalid = 0x00001 & (CANvars[7].data.U64 >> 32L);
 		CANvars[7].data.U64 = CANvars[7].data.U64 >> CANvars[6].Offset;
 		CANvars[7].New = 1;
 		StopWatchRestart(CANvars[7].Timeout);
-		ECanaRegs.CANRMP.bit.RMP8 = 1;
+		ECanaRegs.CANRMP.bit.RMP9 = 1;
 	break;
 
 	case CANCORDERHEART_BOX:

@@ -9,7 +9,7 @@
 #define CAN_H_
 
 
-
+void BUS_OFF();
 
 struct CANmsg {
    char MBox;
