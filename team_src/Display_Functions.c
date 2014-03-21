@@ -558,7 +558,7 @@ void SetLCDEN(int s)
 
 void LCDdelay()
 {
-	DELAY_US(1);
+	DELAY_US(2);
 }
 
 void delay_ms(uint16_t ms)
@@ -763,10 +763,10 @@ void PrintCANvariable(uint8_t N, int8_t size)
 	}
 
 	if ((size == 2) & (length > 5))
-		size = 1;
+		text[5] = 0;
 
 	if ((size == 1) & (length > 7))
-		size = 0;
+		text[7] = 0;
 
 	if((size == 0) & (length > 20))
 		size = -1;
