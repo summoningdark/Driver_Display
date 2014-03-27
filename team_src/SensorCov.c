@@ -20,6 +20,7 @@ data_struct data_temp;
 stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
 stopwatch_struct* CellVolt_watch;		//stopwatch for cell voltage timeouts
 stopwatch_struct* CellTime_watch;		//stopwatch for cell voltage measurement timing
+stopwatch_struct* Refresh_watch;		//stopwatch for display refresh
 unsigned int GPSvalid = 0;				//flag for GPS lock
 
 //Defines for States
@@ -120,6 +121,7 @@ void SensorCovInit()
 	Menu_watch = StartStopWatch(700000L);	//stopwatch for menu timeout
 	CellVolt_watch = StartStopWatch(1000);	//stopwatch for Cell voltage timeout
 	CellTime_watch = StartStopWatch(1000);	//stopwatch for Cell voltage request timing
+	Refresh_watch = StartStopWatch(50000);	//stopwatch for display refresh
 }
 
 
@@ -604,8 +606,9 @@ void SensorCovMeasure()
 			{
 				SetLEDs(BTN_BACK_GREEN | BTN_UP_GREEN | BTN_SELECT_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
 			}
-			if(CANvars[RaceVar].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[RaceVar].Timeout))	//if new can data, data timeout, or flag for redraw
+			if(isStopWatchComplete(Refresh_watch) || DisplayRefresh || isStopWatchComplete(CANvars[RaceVar].Timeout))	//if new can data, data timeout, or flag for redraw
 			{
+				StopWatchRestart(Refresh_watch);
 				DisplayRefresh=0;					//just redrew the display
 				set_cursor(0,10);					//center the value
 				PrintCANvariable(RaceVar, 2);				//update the display
@@ -654,12 +657,13 @@ void SensorCovMeasure()
 			draw_sprite(0,54,0,7);	//draw 12v battery icon 0
 		}
 
-		if(CANvars[0].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[0].Timeout))	//if new can data or flag for redraw
+		if(isStopWatchComplete(Refresh_watch) || DisplayRefresh || isStopWatchComplete(CANvars[RaceVar].Timeout))	//if new can data or flag for redraw
 		{
+			StopWatchRestart(Refresh_watch);
 			set_cursor(0,23);					//center the value
-			PrintCANvariable(0, 1);				//update the display
+			PrintCANvariable(RaceVar, 1);				//update the display
 			if (y_offset == 23) clear_to_end();
-			CANvars[0].New = 0;					//variable is no longer new
+			CANvars[RaceVar].New = 0;					//variable is no longer new
 		}
 
 		if(CANvars[4].New == 1 || DisplayRefresh  || isStopWatchComplete(CANvars[4].Timeout))	//if new can data or flag for redraw
@@ -728,8 +732,9 @@ void SensorCovMeasure()
 			set_font(Font);		//use small font
 			for(tmp=0;tmp<4;tmp++)
 			{
-				if(CANvars[d4N[tmp]].New == 1 || DisplayRefresh || isStopWatchComplete(CANvars[d4N[tmp]].Timeout))							//update first displayed variable
+				if(isStopWatchComplete(Refresh_watch) || DisplayRefresh || isStopWatchComplete(CANvars[d4N[tmp]].Timeout))							//update first displayed variable
 				{
+					StopWatchRestart(Refresh_watch);
 					//variable label, print in inverse if d4S == tmp
 					print_char(tmp+49,(d4S==tmp),0);										//print Watch label
 					print_char(' ',(d4S==tmp),0);
