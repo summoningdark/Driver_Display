@@ -26,22 +26,6 @@ typedef struct TIME
 	unsigned char seconds:8;
 } TIME_STRUCT;
 
-//this union is to make extracting arbitrary variable data out of a CAN message easy
-//first the data bytes from the CAN message are placed in a variable with this union type
-//then the union is shifted using its uint64 representation to bring the correct data bits to the right justified position
-//you can then access the data as whatever type is appropriate
-typedef union
-{
-	int16	I16;
-	Uint16	U16;
-	int32	I32;
-	Uint32	U32;
-	float32	F32;
-	int64	I64;
-	Uint64	U64;
-	float64	F64;
-	TIME_STRUCT	TIME;
-} CAN_DATA_u;
 
 typedef struct
 {
@@ -71,13 +55,6 @@ typedef struct CAN_VAR
 	CAN_DATA_u data;
 } can_variable_struct;
 
-//this struct is fort the const array in memory that holds our CAN variable data, same as a CAN_VAR but without the data
-typedef struct CAN_VAR_LIST
-{
-	Uint16 SID;
-	Uint16 TypeCode;
-	Uint16 Offset;
-} can_variable_list_struct;
 
 typedef struct DATA
 {

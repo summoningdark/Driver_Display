@@ -8,19 +8,18 @@
 #include "all.h"
 #include "menus.h"
 #include <stdio.h>
+#include "CANdb.h"
 
 #define round(x) ((x)>=0?(int)((x)+0.5):(int)((x)-0.5))
 
-extern const char CANdbcNames[][22];
-extern const can_variable_list_struct CANdbc[];
 extern unsigned int x_offset,y_offset;
 
 ops_struct ops_temp;
 data_struct data_temp;
 stopwatch_struct* Menu_watch;		//stopwatch for menu timeouts
-stopwatch_struct* CellVolt_watch;		//stopwatch for cell voltage timeouts
-stopwatch_struct* CellTime_watch;		//stopwatch for cell voltage measurement timing
-unsigned int GPSvalid = 0;				//flag for GPS lock
+stopwatch_struct* CellVolt_watch;	//stopwatch for cell voltage timeouts
+stopwatch_struct* CellTime_watch;	//stopwatch for cell voltage measurement timing
+unsigned int GPSvalid = 0;			//flag for GPS lock
 
 //Defines for States
 #define CV1			1
@@ -45,7 +44,7 @@ unsigned int GPSvalid = 0;				//flag for GPS lock
 #define NLINES 8
 int highlight,offset,i,max,lines,MenuReturn;
 const char (*MenuList)[22];		//pointer to menu entries
-int MenuStack[10];							//stack for successive menu calls
+int MenuStack[10];				//stack for successive menu calls
 int MenuStackp;
 void Push(int s);
 int Pop();
@@ -113,10 +112,6 @@ void SensorCovInit()
 	for(tmp=0;tmp<120;tmp++)
 			CellVolt[tmp] = -1;
 
-	//testing
-	CANvars[4].data.F32 = 37.4;			//testing motor temp
-	CANvars[5].data.F32 = 12.6;			//testing 12V bus
-	CANvars[0].data.F32 = 0.123;
 	Menu_watch = StartStopWatch(700000L);	//stopwatch for menu timeout
 	CellVolt_watch = StartStopWatch(1000);	//stopwatch for Cell voltage timeout
 	CellTime_watch = StartStopWatch(1000);	//stopwatch for Cell voltage request timing
@@ -143,7 +138,7 @@ void SensorCovMeasure()
 
 	//always check for cancorder, GPS and tritium status
 	tmp = 3;
-	if (isStopWatchComplete(CANvars[NUM_CANVARS - 1].Timeout))
+	if (isStopWatchComplete(LiveCANdata[CANDATAENTRIES].Timeout))
 		tmp &= 0xFE;	//if Cancorder timed out, clear bit 0 in tmp
 	if (GPSvalid == 0)
 		tmp &= 0xFD;	//if GPS not valid, clear bit 1 in tmp
@@ -163,15 +158,15 @@ void SensorCovMeasure()
 	break;
 	}
 
-	if (isStopWatchComplete(CANvars[6].Timeout))
+	if (isStopWatchComplete(LiveCANdata[BUSVOLT].Timeout))
 	{
 		SetLEDs(IND2OFF,IND2MASK);
 	}
-	else if (CANvars[6].data.F32 < 50)
+	else if (LiveCANdata[BUSVOLT].data < 50)
 	{
 		SetLEDs(IND2YELLOW,IND2MASK);
 	}
-	else if (CANvars[6].data.F32 < 300)
+	else if (LiveCANdata[BUSVOLT].data < 300)
 	{
 		SetLEDs(IND2RED,IND2MASK);
 	}

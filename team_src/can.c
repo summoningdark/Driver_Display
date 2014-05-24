@@ -13,9 +13,15 @@ stopwatch_struct* can_watch;
 
 struct ECAN_REGS ECanaShadow;
 
-#include "CANdbc.h"
+#include "CANparser.h"
 
-can_variable_struct CANvars[NUM_CANVARS];
+//this array holds all the live CAN variable data
+volatile LiveCANvariable LiveCANdata[CANDATAENTRIES+1];		//add 1 on the end for the cancorder heartbeat
+//this static array holds the information to parse a variable out of a can message
+const can_variable_struct CANVariabledb[CANDATAENTRIES] = CANDATAINITVALUES;
+//this static array holds the mapping from the CAN ID to variables
+const canDB CANdatabase0[5][10] = CANDBINITVALUES;
+
 cell_can_union CanCell;
 char CellVoltFlag = 0;
 CellBlock CurrCellBlock;
@@ -85,13 +91,11 @@ void CANSetup()
 	memcpy(&CANvars[NUM_CANVARS - 1].Name, "CANcorder Heartbeat",20);
 
 	//clear all CANvars data fields
-	for(i=0;i<NUM_CANVARS;i++)
-		CANvars[i].data.U64 = 0LL;
-
 	//init all CANvars timeouts
-	for(i=0;i<NUM_CANVARS;i++)
-			CANvars[i].Timeout = StartStopWatch(500000L);	//CAN variables timeout after 5 seconds
-
+	for(i=0;i<NUM_CANVARS;i++){
+		LiveCanData[i].data = 0;
+		LiveCanData[i].Timeout = StartStopWatch(500000L);	//CAN variables timeout after 5 seconds
+	}
 
 	InitECanaGpio();
 	InitECana();
@@ -106,7 +110,6 @@ void CANSetup()
 	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 
-	//todo USER: Node specifc CAN setup
 	EALLOW;
 
 	// create mailbox for all Receive and transmit IDs
@@ -132,7 +135,7 @@ void CANSetup()
 	ECanaShadow.CANMD.bit.MD1 = 0; 			//transmit
 	ECanaShadow.CANME.bit.ME1 = 1;			//enable
 
-	//CAN Variable 1 RECEIVE
+	//CAN mailboxes 2 to 6 are general receive mailboxes
 	ECanaMboxes.MBOX2.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX2.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX2.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -141,9 +144,8 @@ void CANSetup()
 	ECanaShadow.CANMD.bit.MD2 = 1;			//receive
 	ECanaShadow.CANME.bit.ME2 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM2  = 1; 		//int enable
-	ECanaShadow.CANMIL.bit.MIL2  = 1;  		// Int.-Level MB#0  -> I1EN
+	ECanaShadow.CANMIL.bit.MIL2  = 1;  		//Int.-Level MB#0  -> I1EN
 
-	//CAN Variable 2 RECEIVE
 	ECanaMboxes.MBOX3.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX3.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX3.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -154,7 +156,6 @@ void CANSetup()
 	ECanaShadow.CANMIM.bit.MIM3  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL3  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//CAN Variable 3 RECEIVE
 	ECanaMboxes.MBOX4.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX4.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX4.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -165,7 +166,6 @@ void CANSetup()
 	ECanaShadow.CANMIM.bit.MIM4  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL4  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//CAN Variable 4 RECEIVE
 	ECanaMboxes.MBOX5.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX5.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX5.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -176,7 +176,6 @@ void CANSetup()
 	ECanaShadow.CANMIM.bit.MIM5  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL5  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//Motor Temp RECEIVE
 	ECanaMboxes.MBOX6.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX6.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX6.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -187,7 +186,6 @@ void CANSetup()
 	ECanaShadow.CANMIM.bit.MIM6  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL6  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//12V Bus voltage RECEIVE
 	ECanaMboxes.MBOX7.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX7.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX7.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -198,7 +196,6 @@ void CANSetup()
 	ECanaShadow.CANMIM.bit.MIM7  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL7  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//Tritium Bus voltage RECEIVE
 	ECanaMboxes.MBOX8.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX8.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX8.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -209,7 +206,6 @@ void CANSetup()
 	ECanaShadow.CANMIM.bit.MIM8  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL8  = 1;  		// Int.-Level MB#0  -> I1EN
 
-	//GPS Latitude and Validity RECEIVE
 	ECanaMboxes.MBOX9.MSGID.bit.IDE = 0; 	//standard id
 	ECanaMboxes.MBOX9.MSGID.bit.AME = 0;	// all bit must match
 	ECanaMboxes.MBOX9.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
@@ -219,6 +215,7 @@ void CANSetup()
 	ECanaShadow.CANME.bit.ME9 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM9  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL9  = 1;  		// Int.-Level MB#0  -> I1EN
+
 
 	//CANcorder heartbeat RECEIVE
 	ECanaMboxes.MBOX30.MSGID.bit.IDE = 0; 	//standard id
@@ -329,13 +326,11 @@ void ClearMailBoxes()
 
 char FillCAN(unsigned int Mbox)
 {
-	//todo USER: setup for all transmit MBOXs
 	struct ECAN_REGS ECanaShadow;
 	ECanaShadow.CANMC.all = ECanaRegs.CANMC.all;
 	switch (Mbox)								//choose mailbox
 	{
 	case HEARTBEAT_BOX:
-		//todo Nathan define heartbeat
 		EALLOW;
 		ECanaShadow.CANMC.bit.MBNR = Mbox;
 		ECanaShadow.CANMC.bit.CDR = 1;
@@ -365,7 +360,6 @@ void SendCAN(unsigned int Mbox)
 	mask = 1 << Mbox;
 	ECanaRegs.CANTRS.all = mask;
 
-	//todo Nathan: calibrate sendcan stopwatch
 	StopWatchRestart(can_watch);
 
 	do{ECanaShadow.CANTA.all = ECanaRegs.CANTA.all;}
@@ -396,12 +390,10 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
   	unsigned int mailbox_nr;
   	ECanaShadow.CANGIF1.bit.MIV1 =  ECanaRegs.CANGIF1.bit.MIV1;
   	mailbox_nr = ECanaShadow.CANGIF1.bit.MIV1;
-  	//todo USER: Setup ops command
   	switch(mailbox_nr)
   	{
   	case COMMAND_BOX:
-  			//todo Nathan: Define Command frame
-  			//proposed:
+   			//proposed:
   			//HIGH 4 BYTES = Uint32 ID
   			//LOW 4 BYTES = Uint32 change to
   			ops_id = ECanaMboxes.MBOX0.MDH.all;
@@ -420,96 +412,33 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 			ECanaRegs.CANRMP.bit.RMP0 = 1;
 	break;
 
-		//todo USER: Setup other reads
-	case VARIABLE1_BOX:
-		CANvars[0].data.U32 = ECanaMboxes.MBOX2.MDH.all;
-		CANvars[0].data.U64 = CANvars[0].data.U64 << 32L;
-		CANvars[0].data.U32 = ECanaMboxes.MBOX2.MDL.all;
-		CANvars[0].data.U64 = CANvars[0].data.U64 >> CANvars[0].Offset;
-		CANvars[0].New = 1;
-		StopWatchRestart(CANvars[0].Timeout);
-		ECanaRegs.CANRMP.bit.RMP2 = 1;
+	case 2:
+		//process the can message
+		processCANmessage(0, ECanaMboxes.MBOX2.MSGID, ECanaMboxes.MBOX2.MDH.all,ECanaMboxes.MBOX2.MDL.all);
 	break;
 
-	case VARIABLE2_BOX:
-		CANvars[1].data.U32 = ECanaMboxes.MBOX3.MDH.all;
-		CANvars[1].data.U64 = CANvars[1].data.U64 << 32L;
-		CANvars[1].data.U32 = ECanaMboxes.MBOX3.MDL.all;
-		CANvars[1].data.U64 = CANvars[1].data.U64 >> CANvars[1].Offset;
-		CANvars[1].New = 1;
-		StopWatchRestart(CANvars[1].Timeout);
-		ECanaRegs.CANRMP.bit.RMP3 = 1;
+	case 3:
+		//process the can message
+		processCANmessage(1, ECanaMboxes.MBOX3.MSGID, ECanaMboxes.MBOX3.MDH.all,ECanaMboxes.MBOX3.MDL.all);
 	break;
 
-	case VARIABLE3_BOX:
-		CANvars[2].data.U32 = ECanaMboxes.MBOX4.MDH.all;
-		CANvars[2].data.U64 = CANvars[2].data.U64 << 32L;
-		CANvars[2].data.U32 = ECanaMboxes.MBOX4.MDL.all;
-		CANvars[2].data.U64 = CANvars[2].data.U64 >> CANvars[2].Offset;
-		CANvars[2].New = 1;
-		StopWatchRestart(CANvars[2].Timeout);
-		ECanaRegs.CANRMP.bit.RMP4 = 1;
+	case 4:
+		//process the can message
+		processCANmessage(2, ECanaMboxes.MBOX4.MSGID, ECanaMboxes.MBOX4.MDH.all,ECanaMboxes.MBOX4.MDL.all);
 	break;
 
-	case VARIABLE4_BOX:
-		CANvars[3].data.U32 = ECanaMboxes.MBOX5.MDH.all;
-		CANvars[3].data.U64 = CANvars[3].data.U64 << 32L;
-		CANvars[3].data.U32 = ECanaMboxes.MBOX5.MDL.all;
-		CANvars[3].data.U64 = CANvars[3].data.U64 >> CANvars[3].Offset;
-		CANvars[3].New = 1;
-		StopWatchRestart(CANvars[3].Timeout);
-		ECanaRegs.CANRMP.bit.RMP5 = 1;
+	case 5:
+		//process the can message
+		processCANmessage(3, ECanaMboxes.MBOX5.MSGID, ECanaMboxes.MBOX5.MDH.all,ECanaMboxes.MBOX5.MDL.all);
 	break;
 
-	case CANMOTORTEMP_BOX:
-		CANvars[4].data.U32 = ECanaMboxes.MBOX6.MDH.all;
-		CANvars[4].data.U64 = CANvars[4].data.U64 << 32L;
-		CANvars[4].data.U32 = ECanaMboxes.MBOX6.MDL.all;
-		CANvars[4].data.U64 = CANvars[4].data.U64 >> CANvars[4].Offset;
-		CANvars[4].New = 1;
-		StopWatchRestart(CANvars[4].Timeout);
-		ECanaRegs.CANRMP.bit.RMP6 = 1;
-	break;
-
-	case CAN12VBUS_BOX:
-		CANvars[5].data.U32 = ECanaMboxes.MBOX7.MDH.all;
-		CANvars[5].data.U64 = CANvars[5].data.U64 << 32L;
-		CANvars[5].data.U32 = ECanaMboxes.MBOX7.MDL.all;
-		CANvars[5].data.U64 = CANvars[5].data.U64 >> CANvars[5].Offset;
-		CANvars[5].New = 1;
-		StopWatchRestart(CANvars[5].Timeout);
-		ECanaRegs.CANRMP.bit.RMP7 = 1;
-	break;
-
-	case TRITIUMVBUS_BOX:
-		CANvars[6].data.U32 = ECanaMboxes.MBOX8.MDH.all;
-		CANvars[6].data.U64 = CANvars[6].data.U64 << 32L;
-		CANvars[6].data.U32 = ECanaMboxes.MBOX8.MDL.all;
-		CANvars[6].data.U64 = CANvars[6].data.U64 >> CANvars[6].Offset;
-		CANvars[6].New = 1;
-		StopWatchRestart(CANvars[6].Timeout);
-		ECanaRegs.CANRMP.bit.RMP8 = 1;
-	break;
-
-	case GPSLAT_BOX:
-		CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDH.all;
-		CANvars[7].data.U64 = CANvars[7].data.U64 << 32L;
-		CANvars[7].data.U32 = ECanaMboxes.MBOX8.MDL.all;
-		//need special check here for GPS lock bit
-		GPSvalid = 0x00001 & (CANvars[7].data.U64 >> 32L);
-		CANvars[7].data.U64 = CANvars[7].data.U64 >> CANvars[6].Offset;
-		CANvars[7].New = 1;
-		StopWatchRestart(CANvars[7].Timeout);
-		ECanaRegs.CANRMP.bit.RMP8 = 1;
+	case 6:
+		//process the can message
+		processCANmessage(4, ECanaMboxes.MBOX6.MSGID, ECanaMboxes.MBOX6.MDH.all,ECanaMboxes.MBOX6.MDL.all);
 	break;
 
 	case CANCORDERHEART_BOX:
-		CANvars[NUM_CANVARS - 1].data.U32 = ECanaMboxes.MBOX30.MDH.all;
-		CANvars[NUM_CANVARS - 1].data.U64 = CANvars[NUM_CANVARS - 1].data.U64 << 32L;
-		CANvars[NUM_CANVARS - 1].data.U32 = ECanaMboxes.MBOX30.MDL.all;
-		CANvars[NUM_CANVARS - 1].data.U64 = CANvars[NUM_CANVARS - 1].data.U64 >> CANvars[NUM_CANVARS - 1].Offset;
-		CANvars[NUM_CANVARS - 1].New = 1;
-		StopWatchRestart(CANvars[NUM_CANVARS - 1].Timeout);
+		StopWatchRestart(LiveCANdata[CANDATAENTRIES].Timeout);
 		ECanaRegs.CANRMP.bit.RMP30 = 1;
 	break;
 
@@ -534,3 +463,111 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
   	PieCtrlRegs.PIEACK.all = PIEACK_GROUP9;
 }
 
+
+//This function take a CAN message and extracts
+//all the variables and writes them to the global data structure
+void processCANmessage (int DB, unsigned int ID, Uint32 DataH, Uint32 DataL)
+{
+    //Pair message ID in buffer to one in canDB that we created
+    int i;
+    int indexer;
+    static canUnion temp;
+    indexer = -1;
+
+    //this is currently a really slow lookup. if the CAN database gets large,
+    //this should be switched to a binary tree search or a hash table
+
+    //See if the received message is in our database
+    for (i = 0; i<10; i++) {
+        if (ID == CANdatabase[DB][i].canID) {
+            indexer = i;
+            break;
+        }
+    }
+
+    //if this message is for us, process it
+    if (indexer >= 0){
+
+        //fill variables in CAN Variable array with actual data
+        for (i = 0; i<CANdatabase[DB][indexer].length; i++) {                                   //loop for each variable stored in the message
+
+        	temp.U32 = DataH;
+        	temp.U64 = temp.U64 << 32L;
+        	temp.U32 = DataL;
+            temp.U64 = (temp.U64 >> LiveCANdata[CANdatabase[DB][indexer].index[i]].datapos);    //Shift the data by the bit offset for this CAN valriable
+
+            //reset the stopwatch for this variable
+            StopWatchRestart(LiveCANdata[CANdatabase[DB][indexer].index[i]].Timeout);
+
+            //now interpret and scale the data, store in LiveCANdata
+            switch (LiveCANdata[CANdatabase[DB][indexer].index[i]].type) {                      //switch for datatype
+                case I16TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.I16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U16TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case I32TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.I32 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U32TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U32 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case F32TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.F32 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case I64TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.I64 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U64TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U64 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case F64TYPE :
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.F64 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U8TYPE :
+                    temp.U16 = temp.U16 & 0x00FF;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U7TYPE :
+                    temp.U16 = temp.U16 & 0x007F;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U6TYPE :
+                    temp.U16 = temp.U16 & 0x003F;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U5TYPE :
+                    temp.U16 = temp.U16 & 0x001F;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U4TYPE :
+                    temp.U16 = temp.U16 & 0x000F;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U3TYPE :
+                    temp.U16 = temp.U16 & 0x0007;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U2TYPE :
+                    temp.U16 = temp.U16 & 0x0003;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case U1TYPE :
+                    temp.U16 = temp.U16 & 0x0001;
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.U16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+                case I8TYPE :
+                    temp.U16 = temp.U16 & 0x00FF; // lops off everything but the 8 bits
+                    if (temp.U16 & 0x0080) {        //sign extend out to 16 bits
+                        temp.U16 = temp.U16|0xFF00;
+                    }
+                    LiveCANdata[CANdatabase[DB][indexer].index[i]].data = temp.I16 * LiveCANdata[CANdatabase[DB][indexer].index[i]].scale + LiveCANdata[CANdatabase[DB][indexer].index[i]].offset;
+                    break;
+
+            }
+        }
+
+    }
+
+}
