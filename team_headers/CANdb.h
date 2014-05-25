@@ -31,11 +31,20 @@
 #define U2TYPE 15
 #define U1TYPE 16
 
+//CAN IDs mailbox breakdown
+//Mailbox 2, DB0, CAN IDs 0x100-0x17F, mask 0x0000007F
+//Mailbox 3, DB1, CAN IDs 0x180-0x1FF, mask 0x0000007F
+//Mailbox 4, DB2, CAN IDs 0x200-0x27F, mask 0x0000007F
+//Mailbox 5, DB3, CAN IDs 0x280-0x2FF, mask 0x0000007F
+//Mailbox 6, DB4, CAN IDs 0x300-0x37F, mask 0x0000007F
+//Mailbox 7, DB5, CAN IDs 0x380-0x3FF, mask 0x0000007F
+//Mailbox 8, DB6, CAN IDs 0x400-0x47F, mask 0x0000007F
+//Mailbox 9, DB7, CAN IDs 0x480-0x4FF, mask 0x0000007F
 
 //total number of values read from CAN bus.
 // there should be this many defines below
 //note one CAN message can hold more than one value.
-#define CANDATAENTRIES 25
+#define CANDATAENTRIES 110
 
 //defines for the database entries, Human-readable form.
 //(ie. Names of all the CAN variables)
@@ -99,66 +108,6 @@ const char CANdbcNames[CANDATAENTRIES+1][22]={	"Tritium Flags",
 				""
 };
 
-//****************************CAN ID database***********************************
-/*
- * The CAN ID database is a list of all the CAN IDs that are handled by the
- * automatic parser.
- */
-
-//This define is the initializer for the CAN ID database(s)
-//There should be exactly 10 lines for each mailbox database.
-//The entries should be sorted by CAN ID so that it is easy to filter them based on mailbox
-//(ie. all entries in a single CANDBINITVALUES should be easy to filter (like ascending numerical order))
-//each line should be {0xnnnnnnnn,{x,y,z},m},\  (Note the last line doesn't have the comma)
-//make sure the only thing after the \  is a carriage return
-//the final } has no "\"
-//0xnnnn is the CAN ID value in Hex
-//{x,y,z} is a list of the CAN variables contained in the CAN ID. (Use above defines in the list)
-//,m is the number of CAN variables in the CAN ID (ie length of the list)
-#define CANDBINITVALUES {\
-	{\
-    	{0x0CF00400, {RPM,DDTQ,ACTTQ},3},\
-    	{0x18FEEE00, {ECT},1},\
-    	{0x18FEF500, {BARO,AMBT},2},\
-    	{0x18F11E05, {NGSTAT,NGASPW},2},\
-    	{0x18F11C05, {DMAST_OVR_STAT,DFRP_OVR_STAT,DPW_OVR_STAT,DFRP_OVR,DPW_OVR},5},\
-    	{0x18F11F05, {NSHIFT_0,NSHIFT_26,NSHIFT_51,NSHIFT_76,NSHIFT_101,NSHIFT_126,NSHIFT_151,NSHIFT_176},8}\
-    },\
-	{\
-    	{0x0CF00400, {RPM,DDTQ,ACTTQ},3},\
-    	{0x18FEEE00, {ECT},1},\
-    	{0x18FEF500, {BARO,AMBT},2},\
-    	{0x18F11E05, {NGSTAT,NGASPW},2},\
-    	{0x18F11C05, {DMAST_OVR_STAT,DFRP_OVR_STAT,DPW_OVR_STAT,DFRP_OVR,DPW_OVR},5},\
-    	{0x18F11F05, {NSHIFT_0,NSHIFT_26,NSHIFT_51,NSHIFT_76,NSHIFT_101,NSHIFT_126,NSHIFT_151,NSHIFT_176},8}\
-    },\
-    {\
-    	{0x0CF00400, {RPM,DDTQ,ACTTQ},3},\
-    	{0x18FEEE00, {ECT},1},\
-    	{0x18FEF500, {BARO,AMBT},2},\
-    	{0x18F11E05, {NGSTAT,NGASPW},2},\
-    	{0x18F11C05, {DMAST_OVR_STAT,DFRP_OVR_STAT,DPW_OVR_STAT,DFRP_OVR,DPW_OVR},5},\
-    	{0x18F11F05, {NSHIFT_0,NSHIFT_26,NSHIFT_51,NSHIFT_76,NSHIFT_101,NSHIFT_126,NSHIFT_151,NSHIFT_176},8}\
-    },\
-    {\
-    	{0x0CF00400, {RPM,DDTQ,ACTTQ},3},\
-    	{0x18FEEE00, {ECT},1},\
-    	{0x18FEF500, {BARO,AMBT},2},\
-    	{0x18F11E05, {NGSTAT,NGASPW},2},\
-    	{0x18F11C05, {DMAST_OVR_STAT,DFRP_OVR_STAT,DPW_OVR_STAT,DFRP_OVR,DPW_OVR},5},\
-    	{0x18F11F05, {NSHIFT_0,NSHIFT_26,NSHIFT_51,NSHIFT_76,NSHIFT_101,NSHIFT_126,NSHIFT_151,NSHIFT_176},8}\
-    },\
-    {\
-    	{0x0CF00400, {RPM,DDTQ,ACTTQ},3},\
-    	{0x18FEEE00, {ECT},1},\
-    	{0x18FEF500, {BARO,AMBT},2},\
-    	{0x18F11E05, {NGSTAT,NGASPW},2},\
-    	{0x18F11C05, {DMAST_OVR_STAT,DFRP_OVR_STAT,DPW_OVR_STAT,DFRP_OVR,DPW_OVR},5},\
-    	{0x18F11F05, {NSHIFT_0,NSHIFT_26,NSHIFT_51,NSHIFT_76,NSHIFT_101,NSHIFT_126,NSHIFT_151,NSHIFT_176},8}\
-    },\
-}
-
-
 //***************************CAN Variables Database*****************************
 /*
  * This database holes the specifics of the CAN variables the parser handles.
@@ -166,42 +115,156 @@ const char CANdbcNames[CANDATAENTRIES+1][22]={	"Tritium Flags",
 
 //This define is the initializer for the CAN Variables database
 //There should be exactly as many lines here as the number CANDATAENTRIES above.
-//each line should be {"Name","units",ofsb,type,scale,offset},\  (Note the last line doesn't have the comma)
+//each line should be {"units",ofsb,type,scale,offset},\  (Note the last line doesn't have the comma)
 //make sure the only thing after the \  is a carriage return
 //the final } has no "\"
 //*** Important***, the order of these entries must match the order of their identifiers above (ie. RPM is first)
-//"Name" is the name of the variable, in quotes ", max of 20 characters
-//"units" is the unit string, max of 5 chars
+//"units" is the unit string, max of 3 chars
 //ofsb is the number of bits the variable is offset
 //type is the type code for the variable as stored in the CAN message.(see type code at top of file)
 //scale is the scale factor for the CAN variable
 //offset is the offset for the can variable (numeric offset for scale and offset, not the bit offset)
 #define CANDATAINITVALUES {\
-            {"Tritium Flags","",24,U16TYPE,0.125,0},\
-            {"Bus Voltage","V",24,U16TYPE,0.125,0},\
-            {"Tritium Bus I","A",8,U8TYPE,1,-125},\
-            {"Motor RPM","RPM",16,U8TYPE,1,-125},\
-            {"Speed","mph",16,U8TYPE,1,-125},\
-            {"Motor Current","A",16,U8TYPE,1,-125},\
-            {"Frame Resistance","Ohm",0,U8TYPE,1,-40},\
-            {"Bus AmpHour","Ah",0,U8TYPE,0.5,0},\
-            {"Trip Odo","km",24,U16TYPE,.03125,-273},\
-            {"Command Current","%",0,U2TYPE,1,0},\
-            {"Coolant Low","C",16,U16TYPE,1,0},\
-            {"Coolant Motor","C",0,U4TYPE,1,0},\
-            {"Coolant Controller","C",6,U2TYPE,1,0},\
-            {"Ambient Temp","C",4,U2TYPE,1,0},\
-            {"Latitude","deg",8,U8TYPE,1,0},\
-            {"Longitude","deg",16,U8TYPE,1,0},\
-            {"Time","s",0,U8TYPE,1,0},\
-            {"BIM1 Max","V",8,U8TYPE,1,0},\
-            {"BIM1 Min","V",16,U8TYPE,1,0},\
-            {"BIM2 Max","V",24,U8TYPE,1,0},\
-            {"BIM2 Min","V",32,U8TYPE,1,0},\
-            {"BIM3 Max","V",40,U8TYPE,1,0},\
-            {"BIM3 Min","V",48,U8TYPE,1,0},\
-            {"BIM4 Max","V",56,U8TYPE,1,0},\
-            {"BIM4 Min","V",24,U8TYPE,1,0}\
+            {"",24,U16TYPE,0.125,0},\
+            {"V",24,U16TYPE,0.125,0},\
+            {"A",8,U8TYPE,1,-125},\
+            {"RPM",16,U8TYPE,1,-125},\
+            {"mph",16,U8TYPE,1,-125},\
+            {"A",16,U8TYPE,1,-125},\
+            {"Ohm",0,U8TYPE,1,-40},\
+            {"Ah",0,U8TYPE,0.5,0},\
+            {"km",24,U16TYPE,.03125,-273},\
+            {"%",0,U2TYPE,1,0},\
+            {"C",16,U16TYPE,1,0},\
+            {"C",0,U4TYPE,1,0},\
+            {"C",6,U2TYPE,1,0},\
+            {"C",4,U2TYPE,1,0},\
+            {"deg",8,U8TYPE,1,0},\
+            {"deg",16,U8TYPE,1,0},\
+            {"s",0,U8TYPE,1,0},\
+            {"V",8,U8TYPE,1,0},\
+            {"V",16,U8TYPE,1,0},\
+            {"V",24,U8TYPE,1,0},\
+            {"V",32,U8TYPE,1,0},\
+            {"V",40,U8TYPE,1,0},\
+            {"V",48,U8TYPE,1,0},\
+            {"V",56,U8TYPE,1,0},\
+            {"V",24,U8TYPE,1,0}\
 }
 
+//****************************CAN ID database***********************************
+/*
+ * The CAN ID database is a list of all the CAN IDs that are handled by the
+ * automatic parser.
+ */
+
+//This define is the initializer for the CAN ID database(s)
+//There should be exactly 16 lines for each mailbox database.
+//The entries should be sorted by CAN ID so that it is easy to filter them based on mailbox
+//(ie. all entries in a single CANDBINITVALUES should be easy to filter (like ascending numerical order))
+//each line should be {0xnnn,{x,y,z},m},\  (Note the last line doesn't have the comma)
+//make sure the only thing after the \  is a carriage return
+//the final } has no "\"
+//0xnnn is the CAN ID value in Hex
+//{x,y,z} is a list of the CAN variables contained in the CAN ID, currently max of 6. (Use above defines in the list)
+//,m is the number of CAN variables in the CAN ID (ie length of the list)
+
+//CAN IDs mailbox breakdown
+//Mailbox 2, DB0, CAN IDs 0x100-0x10F
+//Mailbox 3, DB1, CAN IDs 0x110,0x111, 0x1E0-0x1E2
+//Mailbox 4, DB2, CAN IDs 0x200-0x20F
+//Mailbox 5, DB3, CAN IDs 0x300-0x30F
+//Mailbox 6, DB4, CAN IDs 0x335-0x344
+#define CANDBINITVALUES {\
+	{\
+    	{0x100, {CANDATAENTRIES},1},\
+    	{0x101, {CANDATAENTRIES},1},\
+    	{0x102, {CANDATAENTRIES},1},\
+    	{0x103, {CANDATAENTRIES},1},\
+    	{0x104, {CANDATAENTRIES},1},\
+    	{0x105, {CANDATAENTRIES},1},\
+    	{0x106, {CANDATAENTRIES},1},\
+    	{0x107, {CANDATAENTRIES},1},\
+    	{0x108, {CANDATAENTRIES},1},\
+    	{0x109, {CANDATAENTRIES},1},\
+    	{0x10A, {CANDATAENTRIES},1},\
+    	{0x10B, {CANDATAENTRIES},1},\
+    	{0x10C, {CANDATAENTRIES},1},\
+    	{0x10D, {CANDATAENTRIES},1},\
+    	{0x10E, {CANDATAENTRIES},1},\
+    	{0x10F, {CANDATAENTRIES},1}\
+    },\
+	{\
+    	{0x110, {CANDATAENTRIES},1},\
+    	{0x111, {CANDATAENTRIES},1},\
+    	{0x1E0, {CANDATAENTRIES},1},\
+    	{0x1E2, {CANDATAENTRIES},1},\
+    	{0x104, {CANDATAENTRIES},1},\
+    	{0x105, {CANDATAENTRIES},1},\
+    	{0x106, {CANDATAENTRIES},1},\
+    	{0x107, {CANDATAENTRIES},1},\
+    	{0x108, {CANDATAENTRIES},1},\
+    	{0x109, {CANDATAENTRIES},1},\
+    	{0x10A, {CANDATAENTRIES},1},\
+    	{0x10B, {CANDATAENTRIES},1},\
+    	{0x10C, {CANDATAENTRIES},1},\
+    	{0x10D, {CANDATAENTRIES},1},\
+    	{0x10E, {CANDATAENTRIES},1},\
+    	{0x10F, {CANDATAENTRIES},1}\
+    },\
+    {\
+    	{0x200, {CANDATAENTRIES},1},\
+    	{0x201, {CANDATAENTRIES},1},\
+    	{0x202, {CANDATAENTRIES},1},\
+    	{0x203, {CANDATAENTRIES},1},\
+    	{0x204, {CANDATAENTRIES},1},\
+    	{0x205, {CANDATAENTRIES},1},\
+    	{0x206, {CANDATAENTRIES},1},\
+    	{0x207, {CANDATAENTRIES},1},\
+    	{0x208, {CANDATAENTRIES},1},\
+    	{0x209, {CANDATAENTRIES},1},\
+    	{0x20A, {CANDATAENTRIES},1},\
+    	{0x20B, {CANDATAENTRIES},1},\
+    	{0x20C, {CANDATAENTRIES},1},\
+    	{0x20D, {CANDATAENTRIES},1},\
+    	{0x20E, {CANDATAENTRIES},1},\
+    	{0x20F, {CANDATAENTRIES},1}\
+    },\
+    {\
+    	{0x300, {CANDATAENTRIES},1},\
+    	{0x301, {CANDATAENTRIES},1},\
+    	{0x302, {CANDATAENTRIES},1},\
+    	{0x303, {CANDATAENTRIES},1},\
+    	{0x304, {CANDATAENTRIES},1},\
+    	{0x305, {CANDATAENTRIES},1},\
+    	{0x306, {CANDATAENTRIES},1},\
+    	{0x307, {CANDATAENTRIES},1},\
+    	{0x308, {CANDATAENTRIES},1},\
+    	{0x309, {CANDATAENTRIES},1},\
+    	{0x30A, {CANDATAENTRIES},1},\
+    	{0x30B, {CANDATAENTRIES},1},\
+    	{0x30C, {CANDATAENTRIES},1},\
+    	{0x30D, {CANDATAENTRIES},1},\
+    	{0x30E, {CANDATAENTRIES},1},\
+    	{0x30F, {CANDATAENTRIES},1}\
+    },\
+    {\
+    	{0x335, {CANDATAENTRIES},1},\
+    	{0x336, {CANDATAENTRIES},1},\
+    	{0x337, {CANDATAENTRIES},1},\
+    	{0x338, {CANDATAENTRIES},1},\
+    	{0x339, {CANDATAENTRIES},1},\
+    	{0x33A, {CANDATAENTRIES},1},\
+    	{0x33B, {CANDATAENTRIES},1},\
+    	{0x33C, {CANDATAENTRIES},1},\
+    	{0x33D, {CANDATAENTRIES},1},\
+    	{0x33E, {CANDATAENTRIES},1},\
+    	{0x33F, {CANDATAENTRIES},1},\
+    	{0x340, {CANDATAENTRIES},1},\
+    	{0x341, {CANDATAENTRIES},1},\
+    	{0x342, {CANDATAENTRIES},1},\
+    	{0x343, {CANDATAENTRIES},1},\
+    	{0x344, {CANDATAENTRIES},1}\
+    },\
+}
 #endif

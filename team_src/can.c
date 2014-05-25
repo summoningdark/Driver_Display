@@ -30,69 +30,9 @@ void CANSetup()
 {
 	int i;
 
-	//copy information from CANdbc to CANvars for defaults
-	CANvars[0].SID = CANdbc[VAR1DEFAULT].SID;
-	CANvars[0].TypeCode = CANdbc[VAR1DEFAULT].TypeCode;
-	CANvars[0].Offset = CANdbc[VAR1DEFAULT].Offset;
-	CANvars[0].New = 0;
-	memcpy(&CANvars[0].Name, &CANdbcNames[VAR1DEFAULT],22);
-
-	CANvars[1].SID = CANdbc[VAR2DEFAULT].SID;
-	CANvars[1].TypeCode = CANdbc[VAR2DEFAULT].TypeCode;
-	CANvars[1].Offset = CANdbc[VAR2DEFAULT].Offset;
-	CANvars[1].New = 0;
-	memcpy(&CANvars[1].Name, &CANdbcNames[VAR2DEFAULT],22);
-
-	CANvars[2].SID = CANdbc[VAR3DEFAULT].SID;
-	CANvars[2].TypeCode = CANdbc[VAR3DEFAULT].TypeCode;
-	CANvars[2].Offset = CANdbc[VAR3DEFAULT].Offset;
-	CANvars[2].New = 0;
-	memcpy(&CANvars[2].Name, &CANdbcNames[VAR3DEFAULT],22);
-
-	CANvars[3].SID = CANdbc[VAR4DEFAULT].SID;
-	CANvars[3].TypeCode = CANdbc[VAR4DEFAULT].TypeCode;
-	CANvars[3].Offset = CANdbc[VAR4DEFAULT].Offset;
-	CANvars[3].New = 0;
-	memcpy(&CANvars[3].Name, &CANdbcNames[VAR4DEFAULT],22);
-
-	//CANvars[4] is always motor temperature
-	CANvars[4].SID = CANMOTORTEMP_SID;
-	CANvars[4].TypeCode = CANMOTORTEMP_TYPE;
-	CANvars[4].Offset = CANMOTORTEMP_OFFSET;
-	CANvars[4].New = 0;
-	memcpy(&CANvars[4].Name, "Motor Temp",11);
-
-	//CANvars[5] is always 12V bus voltage
-	CANvars[5].SID = CAN12VBUS_SID;
-	CANvars[5].TypeCode = CAN12VBUS_TYPE;
-	CANvars[5].Offset = CAN12VBUS_OFFSET;
-	CANvars[5].New = 0;
-	memcpy(&CANvars[5].Name, "12V Bus Voltage",16);
-
-	//CANvars[6] is always Tritium bus voltage
-	CANvars[6].SID = TRITIUMVBUS_SID;
-	CANvars[6].TypeCode = TRITIUMVBUS_TYPE;
-	CANvars[6].Offset = TRITIUMVBUS_OFFSET;
-	CANvars[6].New = 0;
-	memcpy(&CANvars[6].Name, "Tritium Bus Voltage",20);
-
-	//CANvars[7] is always GPS Lat and validity
-	CANvars[7].SID = GPSLAT_SID;
-	CANvars[7].TypeCode = GPSLAT_TYPE;
-	CANvars[7].Offset = GPSLAT_OFFSET;
-	CANvars[7].New = 0;
-	memcpy(&CANvars[7].Name, "GPS Latitude",13);
-
-	//CANvars[NUM_CANVARS - 1] is always CANcorder heartbeat
-	CANvars[NUM_CANVARS - 1].SID = CANCORDERHEART_SID;
-	CANvars[NUM_CANVARS - 1].TypeCode = CANCORDERHEART_TYPE;
-	CANvars[NUM_CANVARS - 1].Offset = CANCORDERHEART_OFFSET;
-	CANvars[NUM_CANVARS - 1].New = 0;
-	memcpy(&CANvars[NUM_CANVARS - 1].Name, "CANcorder Heartbeat",20);
-
-	//clear all CANvars data fields
-	//init all CANvars timeouts
-	for(i=0;i<NUM_CANVARS;i++){
+	//clear all LiveCanData data fields
+	//init all LiveCanData timeouts
+	for(i=0;i<CANDATAENTRIES+1;i++){
 		LiveCanData[i].data = 0;
 		LiveCanData[i].Timeout = StartStopWatch(500000L);	//CAN variables timeout after 5 seconds
 	}
@@ -135,19 +75,24 @@ void CANSetup()
 	ECanaShadow.CANMD.bit.MD1 = 0; 			//transmit
 	ECanaShadow.CANME.bit.ME1 = 1;			//enable
 
+	//todo set up mailboxes 2-6 for blocks of 16 CAN IDs
 	//CAN mailboxes 2 to 6 are general receive mailboxes
+
+	//mailbox 2 handles can IDs 0x100-0x10F
 	ECanaMboxes.MBOX2.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX2.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX2.MSGID.bit.AME = 1;	//must match mask
+	ECanaLAMRegs.LAM2.all = 0x00000FF0;		//mask for last 4 bits
 	ECanaMboxes.MBOX2.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX2.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX2.MSGID.bit.STDMSGID = CANdbc[VAR1DEFAULT].SID;
+	ECanaMboxes.MBOX2.MSGID.bit.STDMSGID = 0x100;
 	ECanaShadow.CANMD.bit.MD2 = 1;			//receive
 	ECanaShadow.CANME.bit.ME2 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM2  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL2  = 1;  		//Int.-Level MB#0  -> I1EN
 
 	ECanaMboxes.MBOX3.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX3.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX3.MSGID.bit.AME = 1;	// all bit must match
+	ECanaLAMRegs.LAM3.all = 0x00000FF0;		//mask for last 4 bits
 	ECanaMboxes.MBOX3.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX3.MSGCTRL.bit.DLC = 8;
 	ECanaMboxes.MBOX3.MSGID.bit.STDMSGID = CANdbc[VAR2DEFAULT].SID;
@@ -157,7 +102,8 @@ void CANSetup()
 	ECanaShadow.CANMIL.bit.MIL3  = 1;  		// Int.-Level MB#0  -> I1EN
 
 	ECanaMboxes.MBOX4.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX4.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX4.MSGID.bit.AME = 1;	// all bit must match
+	ECanaLAMRegs.LAM4.all = 0x00000FF0;		//mask for last 4 bits
 	ECanaMboxes.MBOX4.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX4.MSGCTRL.bit.DLC = 8;
 	ECanaMboxes.MBOX4.MSGID.bit.STDMSGID = CANdbc[VAR3DEFAULT].SID;
@@ -167,7 +113,8 @@ void CANSetup()
 	ECanaShadow.CANMIL.bit.MIL4  = 1;  		// Int.-Level MB#0  -> I1EN
 
 	ECanaMboxes.MBOX5.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX5.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX5.MSGID.bit.AME = 1;	// all bit must match
+	ECanaLAMRegs.LAM5.all = 0x00000FF0;		//mask for last 4 bits
 	ECanaMboxes.MBOX5.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX5.MSGCTRL.bit.DLC = 8;
 	ECanaMboxes.MBOX5.MSGID.bit.STDMSGID = CANdbc[VAR4DEFAULT].SID;
@@ -177,7 +124,8 @@ void CANSetup()
 	ECanaShadow.CANMIL.bit.MIL5  = 1;  		// Int.-Level MB#0  -> I1EN
 
 	ECanaMboxes.MBOX6.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX6.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX6.MSGID.bit.AME = 1;	// all bit must match
+	ECanaLAMRegs.LAM6.all = 0x00000FF0;		//mask for last 4 bits
 	ECanaMboxes.MBOX6.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
 	ECanaMboxes.MBOX6.MSGCTRL.bit.DLC = 8;
 	ECanaMboxes.MBOX6.MSGID.bit.STDMSGID = CANMOTORTEMP_SID;
@@ -185,37 +133,6 @@ void CANSetup()
 	ECanaShadow.CANME.bit.ME6 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM6  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL6  = 1;  		// Int.-Level MB#0  -> I1EN
-
-	ECanaMboxes.MBOX7.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX7.MSGID.bit.AME = 0;	// all bit must match
-	ECanaMboxes.MBOX7.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
-	ECanaMboxes.MBOX7.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX7.MSGID.bit.STDMSGID = CAN12VBUS_SID;
-	ECanaShadow.CANMD.bit.MD7 = 1;			//receive
-	ECanaShadow.CANME.bit.ME7 = 1;			//enable
-	ECanaShadow.CANMIM.bit.MIM7  = 1; 		//int enable
-	ECanaShadow.CANMIL.bit.MIL7  = 1;  		// Int.-Level MB#0  -> I1EN
-
-	ECanaMboxes.MBOX8.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX8.MSGID.bit.AME = 0;	// all bit must match
-	ECanaMboxes.MBOX8.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
-	ECanaMboxes.MBOX8.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX8.MSGID.bit.STDMSGID = TRITIUMVBUS_SID;
-	ECanaShadow.CANMD.bit.MD8 = 1;			//receive
-	ECanaShadow.CANME.bit.ME8 = 1;			//enable
-	ECanaShadow.CANMIM.bit.MIM8  = 1; 		//int enable
-	ECanaShadow.CANMIL.bit.MIL8  = 1;  		// Int.-Level MB#0  -> I1EN
-
-	ECanaMboxes.MBOX9.MSGID.bit.IDE = 0; 	//standard id
-	ECanaMboxes.MBOX9.MSGID.bit.AME = 0;	// all bit must match
-	ECanaMboxes.MBOX9.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
-	ECanaMboxes.MBOX9.MSGCTRL.bit.DLC = 8;
-	ECanaMboxes.MBOX9.MSGID.bit.STDMSGID = GPSLAT_SID;
-	ECanaShadow.CANMD.bit.MD9 = 1;			//receive
-	ECanaShadow.CANME.bit.ME9 = 1;			//enable
-	ECanaShadow.CANMIM.bit.MIM9  = 1; 		//int enable
-	ECanaShadow.CANMIL.bit.MIL9  = 1;  		// Int.-Level MB#0  -> I1EN
-
 
 	//CANcorder heartbeat RECEIVE
 	ECanaMboxes.MBOX30.MSGID.bit.IDE = 0; 	//standard id
@@ -415,26 +332,31 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 	case 2:
 		//process the can message
 		processCANmessage(0, ECanaMboxes.MBOX2.MSGID, ECanaMboxes.MBOX2.MDH.all,ECanaMboxes.MBOX2.MDL.all);
+		ECanaRegs.CANRMP.bit.RMP2 = 1;
 	break;
 
 	case 3:
 		//process the can message
 		processCANmessage(1, ECanaMboxes.MBOX3.MSGID, ECanaMboxes.MBOX3.MDH.all,ECanaMboxes.MBOX3.MDL.all);
+		ECanaRegs.CANRMP.bit.RMP3 = 1;
 	break;
 
 	case 4:
 		//process the can message
 		processCANmessage(2, ECanaMboxes.MBOX4.MSGID, ECanaMboxes.MBOX4.MDH.all,ECanaMboxes.MBOX4.MDL.all);
+		ECanaRegs.CANRMP.bit.RMP4 = 1;
 	break;
 
 	case 5:
 		//process the can message
 		processCANmessage(3, ECanaMboxes.MBOX5.MSGID, ECanaMboxes.MBOX5.MDH.all,ECanaMboxes.MBOX5.MDL.all);
+		ECanaRegs.CANRMP.bit.RMP5 = 1;
 	break;
 
 	case 6:
 		//process the can message
 		processCANmessage(4, ECanaMboxes.MBOX6.MSGID, ECanaMboxes.MBOX6.MDH.all,ECanaMboxes.MBOX6.MDL.all);
+		ECanaRegs.CANRMP.bit.RMP6 = 1;
 	break;
 
 	case CANCORDERHEART_BOX:

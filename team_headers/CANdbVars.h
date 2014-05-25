@@ -31,10 +31,8 @@ typedef union{
 //an array of these holds all the information we use to parse data off of the CAN bus
 //these are static and stored in flash
 typedef struct{
-    /*For debugging, we are going to have "name"*/
-    char nameofcanvar[21];
     /*units of value*/
-    char units[6];
+    char units[4];
     /*Offset in bits to the CAN Variable location*/
     unsigned int datapos;
     /*data type as stored in the CAN message*/
@@ -57,19 +55,19 @@ typedef struct{
 //and array of these holds the mapping from CAN ID to variables
 typedef struct {
     unsigned int canID;     //The CAN ID of the message
-    unsigned int index[64]; //An array of indices in the canVar array for which this message holds data
+    unsigned int index[6];  //An array of indices in the canVar array for which this message holds data
     unsigned int length;    //the number of variables contained in this message
 }canDB;
 //------------------------------------------------------------------------------
 
 // Data from CAN Bus Structure
 // volatile gets changed by interrupt
-extern volatile LiveCANvariable LiveCanData[CANDATAENTRIES];
+extern volatile LiveCANvariable LiveCanData[CANDATAENTRIES+1];
 //Can variable info database
 extern const can_variable_struct CANVariabledb[CANDATAENTRIES];
 
 //These arrays holds the mapping from CAN IDs to CAN variables.
 //they are divided into 10 mailboxes to shorten the search time
-extern const canDB CANdatabase[5][10];
+extern const canDB CANdatabase[5][16];
 
 #endif
