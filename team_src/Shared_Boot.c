@@ -64,7 +64,7 @@ void CopyData()
 
    Uint16 wordData;
    Uint16 i;
-   Uint16  Status;
+   Uint16 Status;
 
 
    // Get the size in words of the first block

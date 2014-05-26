@@ -119,6 +119,7 @@ SECTIONS
    .pinit              : > FLASHC,     PAGE = 0
    .text               : > FLASHF      PAGE = 0
 
+	flb				   : > FLASHB	   PAGE = 1
 
    codestart           : > BEGIN       PAGE = 0
    ramfuncs            : LOAD = FLASHD,
@@ -137,7 +138,6 @@ SECTIONS
    .bss                : > RAML2       PAGE = 1
    .sysmem             : > RAML3       PAGE = 1
 
-
    .bootloader_boot : {
    Boot.obj(.text)}                         > BOOTLOADER	   PAGE = 0
    .bootloader_shared : {
@@ -152,6 +152,7 @@ SECTIONS
    /* Allocate IQ math areas: */
    IQmath              : > FLASHC      PAGE = 0            /* Math Code */
    IQmathTables        : > IQTABLES,   PAGE = 0, TYPE = NOLOAD
+
 
   /* Uncomment the section below if calling the IQNexp() or IQexp()
       functions from the IQMath.lib library in order to utilize the
