@@ -40,6 +40,7 @@ void ClearMailBoxes();
 #define CAN12VBUS_BOX		7
 #define TRITIUMVBUS_BOX 	8
 #define GPSLAT_BOX			9
+#define TRITIUMAH_BOX		10
 #define CANCORDERHEART_BOX	30
 #define CELLVOLT_BOX		11
 
@@ -68,7 +69,11 @@ void ClearMailBoxes();
 #define TRITIUMVBUS_TYPE		0x06
 #define TRITIUMVBUS_OFFSET		0x00
 
-#define NUM_CANVARS 9
+#define TRITIUMAH_SID			0x400 + 0x0E
+#define TRITIUMAH_TYPE			0x06
+#define TRITIUMAH_OFFSET		32
+
+#define NUM_CANVARS 10
 extern can_variable_struct CANvars[NUM_CANVARS];
 
 extern char CellVoltFlag;

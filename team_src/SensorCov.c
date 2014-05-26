@@ -22,6 +22,7 @@ stopwatch_struct* CellVolt_watch;		//stopwatch for cell voltage timeouts
 stopwatch_struct* CellTime_watch;		//stopwatch for cell voltage measurement timing
 stopwatch_struct* Refresh_watch;		//stopwatch for display refresh
 unsigned int GPSvalid = 0;				//flag for GPS lock
+float AmpHoursOffset = 0;
 
 //Defines for States
 #define CV1			1
@@ -105,6 +106,9 @@ void SensorCovInit()
 	SetLEDs(IND1RED | IND2RED, IND1MASK | IND2MASK);				//start with red to indicate no CANcorder, no Tritium
 	set_font(Font);
 
+	//retrieve the AmpHour offset from flash
+	AmpHoursOffset = 0;		//todo make this real
+
 	//set up menus
 	MenuStackp = 0;
 
@@ -135,7 +139,7 @@ void LatchStruct()
 void SensorCovMeasure()
 {
 	static int State=RACEMODE, d4S=0, DisplayRefresh = 1,ManID=0,ManDigit=2,ManOffset=0;
-	static int RaceVar = 0;
+	static int RaceVar = 8;		//start Racemode displaying AmpHours
 	static int d4N[4]={0,1,2,3};
 	int tmp,tmp2;
 	char text[80];
@@ -187,6 +191,19 @@ void SensorCovMeasure()
 	{
 		LCDinit();
 		DisplayRefresh=1;
+	}
+
+//check for extra super secret button press to reset AmpHours counter
+	if ((ButtonStatus & BTN_UP) && (ButtonStatus & BTN_DOWN) && (ButtonStatus & BTN_SELECT))
+	{
+		//todo reset flash which holds the AmpHours offset
+	}
+
+	//check if current AmpHours differ from stored offset by .1 or more, if so update
+	tmpFloat = 0;	//todo, get value from flash
+	if ( ((CANvars[8].data.F32 - tmpFloat) >= 0.1) || ((CANvars[8].data.F32 - tmpFloat) <= -0.1) )
+	{
+		//todo update flash offset to current value (CANvars[8].data.F32)
 	}
 
 	switch(State)

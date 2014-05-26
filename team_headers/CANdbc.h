@@ -7,7 +7,7 @@
 
 #include "data.h"
 
-#define NUMdbcVARS 24
+#define NUMdbcVARS 23
 
 #define VAR1DEFAULT 6
 #define VAR2DEFAULT 2
@@ -37,7 +37,6 @@ const can_variable_list_struct CANdbc[NUMdbcVARS]={	{0x401,5,0},
 													{0x403,6,32},
 													{0x404,6,0},
 													{0x100,6,0},
-													{0x40E,6,32},
 													{0x40E,6,0},
 													{0x501,6,32},
 													{0x109,2,0},
@@ -65,7 +64,6 @@ const char CANdbcNames[NUMdbcVARS+1][22]={	"Tritium Flags",
 				"Speed",
 				"Motor Current",
 				"Frame Resistance",
-				"Bus AmpHour",
 				"Trip Odo (m)",
 				"Command Current",
 				"Coolant Low",

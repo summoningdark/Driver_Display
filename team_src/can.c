@@ -7,6 +7,7 @@
 #include "all.h"
 
 extern unsigned int GPSvalid;
+extern float AmpHoursOffset;
 unsigned int mask;
 
 stopwatch_struct* can_watch;
@@ -96,6 +97,13 @@ void CANSetup()
 	CANvars[7].Offset = GPSLAT_OFFSET;
 	CANvars[7].New = 0;
 	memcpy(&CANvars[7].Name, "GPS Latitude",13);
+
+	//CANvars[8] is always Bus Amp Hours
+	CANvars[8].SID = TRITIUMAH_SID;
+	CANvars[8].TypeCode = TRITIUMAH_TYPE;
+	CANvars[8].Offset = TRITIUMAH_OFFSET;
+	CANvars[8].New = 0;
+	memcpy(&CANvars[8].Name, "Bus AmpHours",13);
 
 	//CANvars[NUM_CANVARS - 1] is always CANcorder heartbeat
 	CANvars[NUM_CANVARS - 1].SID = CANCORDERHEART_SID;
@@ -239,6 +247,17 @@ void CANSetup()
 	ECanaShadow.CANME.bit.ME9 = 1;			//enable
 	ECanaShadow.CANMIM.bit.MIM9  = 1; 		//int enable
 	ECanaShadow.CANMIL.bit.MIL9  = 1;  		// Int.-Level MB#0  -> I1EN
+
+	//Bus Amp Hours Receive
+	ECanaMboxes.MBOX10.MSGID.bit.IDE = 0; 	//standard id
+	ECanaMboxes.MBOX10.MSGID.bit.AME = 0;	// all bit must match
+	ECanaMboxes.MBOX10.MSGID.bit.AAM = 0; 	// no RTR AUTO TRANSMIT
+	ECanaMboxes.MBOX10.MSGCTRL.bit.DLC = 8;
+	ECanaMboxes.MBOX10.MSGID.bit.STDMSGID = TRITIUMAH_SID;
+	ECanaShadow.CANMD.bit.MD10 = 1;			//receive
+	ECanaShadow.CANME.bit.ME10 = 1;			//enable
+	ECanaShadow.CANMIM.bit.MIM10  = 1; 		//int enable
+	ECanaShadow.CANMIL.bit.MIL10  = 1; 		// Int.-Level MB#0  -> I1EN
 
 	//CANcorder heartbeat RECEIVE
 	ECanaMboxes.MBOX30.MSGID.bit.IDE = 0; 	//standard id
@@ -528,6 +547,17 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 		CANvars[7].New = 1;
 		StopWatchRestart(CANvars[7].Timeout);
 		ECanaRegs.CANRMP.bit.RMP9 = 1;
+	break;
+
+	case TRITIUMAH_BOX:
+		CANvars[8].data.U32 = ECanaMboxes.MBOX10.MDH.all;
+		CANvars[8].data.U64 = CANvars[8].data.U64 << 32L;
+		CANvars[8].data.U32 = ECanaMboxes.MBOX10.MDL.all;
+		CANvars[8].New = 1;
+		//Add offset to value from tritium
+		CANvars[8].data.F32 = CANvars[8].data.F32 + AmpHoursOffset;
+		StopWatchRestart(CANvars[8].Timeout);
+		ECanaRegs.CANRMP.bit.RMP10 = 1;
 	break;
 
 	case CANCORDERHEART_BOX:
