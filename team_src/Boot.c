@@ -44,23 +44,23 @@ void BootInit(Uint16 MesgID) {
 
 	BC_CAN_Boot(MesgID);
 
-	Confirm(MesgID,ConfNbr1);
+//	Confirm(MesgID,ConfNbr1);
 
-	if (((*GetWordData)()) != 0x08AA)
-	{
-		Boot_Restart();
-	}
+//	if (((*GetWordData)()) != 0x08AA)
+//	{
+//		Boot_Restart();
+//	}
 
 	Flash_Erase((SECTORA|SECTORB|SECTORC|SECTORD|SECTORE|SECTORF|SECTORG),&FlashStatus);
 
-	Confirm(MesgID,ConfNbr2);
+//	Confirm(MesgID,ConfNbr2);
 
-	if (((*GetWordData)()) != 0x08AA)
-	{
-		Boot_Restart();
-	}
-	ReadReservedFn();
-	EntryAddr = GetLongData();
+//	if (((*GetWordData)()) != 0x08AA)
+//	{
+//		Boot_Restart();
+//	}
+//	ReadReservedFn();
+//	EntryAddr = GetLongData();
 	CopyData();
 }
 
@@ -302,4 +302,3 @@ void Boot_Restart()
 
 	while(1){}
 }
-

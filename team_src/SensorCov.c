@@ -12,15 +12,18 @@
 
 #define round(x) ((x)>=0?(int)((x)+0.5):(int)((x)-0.5))
 
+extern void EraseFlashB(void);
+extern int WriteFloatFlashB(Uint32 Address, float Value);
+
 extern const char CANdbcNames[][22];
 extern const can_variable_list_struct CANdbc[];
 extern unsigned int x_offset,y_offset;
-typedef struct
+typedef union
 {
 	float F32;
 	Uint32 U32;
-} Flash_struct;
-const Flash_struct FlashB[0x800];			//array used to read from flashb sector
+} Flash_union;
+const Flash_union FlashB[0x1000];			//array used to read from flashb sector
 #pragma DATA_SECTION(FlashB,"flb");
 
 ops_struct ops_temp;
@@ -116,11 +119,12 @@ void SensorCovInit()
 	SetLEDs(IND1RED | IND2RED, IND1MASK | IND2MASK);				//start with red to indicate no CANcorder, no Tritium
 	set_font(Font);
 
+
 	//retrieve the AmpHour offset from flash
 	//scan through flash looking for first blank(0xFFFFFFFF) value
 	//set pointer to first blank place -1
 	//if pointer is -1, set pointer to 0, then set amphours to value at pointer
-	for (tmp=0;tmp<0x800;tmp++)
+	for (tmp=0;tmp<0x1000;tmp++)
 		if (FlashB[tmp].U32 == 0xFFFFFFFF)
 		{
 			AmpHours_pointer = tmp - 1;
@@ -131,7 +135,7 @@ void SensorCovInit()
 			AmpHours_pointer = 0;	//set the pointer to 0
 			AmpHoursOffset = 0;		//set the offset to 0
 			//program the first location to 0
-			tmp = Flash_Program((Uint16 *)(0x3F4000),(Uint16 *)&AmpHoursOffset,2,&FlashStatus);
+			tmp = WriteFloatFlashB(0x3F4000L, AmpHoursOffset);
 		}
 		else
 		{
@@ -175,7 +179,6 @@ void SensorCovMeasure()
 	float tmpFloat;
 	struct ECAN_REGS ECanaShadow;	//shadow structure for modifying CAN registers
 	static can_variable_list_struct tmpCANvar;
-	FLASH_ST FlashStatus;
 
 	//always check for cancorder, GPS and tritium status
 	tmp = 3;
@@ -224,9 +227,11 @@ void SensorCovMeasure()
 	}
 
 //check for extra super secret button press to reset AmpHours counter
-	if ((ButtonStatus & BTN_UP) && (ButtonStatus & BTN_DOWN) && (ButtonStatus & BTN_SELECT))
+	if ((ButtonStatus & BTN_UP) && (ButtonStatus & BTN_SELECT))
 	{
-		Flash_Erase(SECTORB,&FlashStatus);
+		EraseFlashB();
+		AmpHoursOffset = 0;
+		AmpHours_pointer = 0;
 	}
 
 	//check if current AmpHours differ from stored offset by .1 or more, if so update
@@ -235,12 +240,12 @@ void SensorCovMeasure()
 	//compare old value with new value
 	if ( ((CANvars[8].data.F32 - tmpFloat) >= 0.1) || ((CANvars[8].data.F32 - tmpFloat) <= -0.1) )
 	{
-		if (++AmpHours_pointer == 0x800)
+		if (++AmpHours_pointer == 0x1000)
 		{
 			AmpHours_pointer = 0;
-			Flash_Erase(SECTORB,&FlashStatus);
+			EraseFlashB();
 		}
-		tmp = Flash_Program((Uint16 *)(0x3F4000+(AmpHours_pointer*2)),(Uint16 *)&CANvars[8].data.F32,2,&FlashStatus);
+		tmp = WriteFloatFlashB(0x3F4000L+(AmpHours_pointer*2), CANvars[8].data.F32);
 	}
 
 	switch(State)

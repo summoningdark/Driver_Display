@@ -18,7 +18,7 @@ int main(void)
 {
 	StartUp();
 	BootISRSetup();
-	PowerDownISRSetup();
+//	PowerDownISRSetup();
 	ops.State = STATE_INIT;
 	while(1)
 	{
@@ -102,6 +102,11 @@ void StartUp()
 
 	EINT;   // Enable Global interrupt INTM
 	ERTM;   // Enable Global realtime interrupt DBGM
+
+	EALLOW;
+		Flash_CPUScaleFactor = SCALE_FACTOR;
+		Flash_CallbackPtr = 0;
+	EDIS;
 }
 
 void Restart()

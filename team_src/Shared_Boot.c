@@ -68,29 +68,29 @@ void CopyData()
 
 
    // Get the size in words of the first block
-   BlockHeader.BlockSize = (*GetWordData)();
+ //  BlockHeader.BlockSize = (*GetWordData)();
 
    // While the block size is > 0 copy the data
    // to the DestAddr.  There is no error checking
    // as it is assumed the DestAddr is a valid
    // memory location
 
-   while(BlockHeader.BlockSize != (Uint16)0x0000)
-   {
-      BlockHeader.DestAddr = GetLongData();
-      for(i = 1; i <= BlockHeader.BlockSize; i++)
-      {
-          wordData = (*GetWordData)();
-          if (BlockHeader.DestAddr < BOOTSTART || BlockHeader.DestAddr >= BOOTEND) //DON'T PROGRAM IN BOOT FLASH!
-          {
-        	  Status = Flash_Program((Uint16*)BlockHeader.DestAddr,&wordData,1,&FlashStatus);
-          }
-          BlockHeader.DestAddr++;
-      }
-
-      // Get the size of the next block
-      BlockHeader.BlockSize = (*GetWordData)();
-   }
+//   while(BlockHeader.BlockSize != (Uint16)0x0000)
+//   {
+//      BlockHeader.DestAddr = GetLongData();
+//      for(i = 1; i <= BlockHeader.BlockSize; i++)
+//      {
+//          wordData = (*GetWordData)();
+//          if (BlockHeader.DestAddr < BOOTSTART || BlockHeader.DestAddr >= BOOTEND) //DON'T PROGRAM IN BOOT FLASH!
+//          {
+        	  Status = Flash_Program((Uint16*)0x3f4000,&wordData,1,&FlashStatus);
+//          }
+//          BlockHeader.DestAddr++;
+//      }
+//
+//      // Get the size of the next block
+//      BlockHeader.BlockSize = (*GetWordData)();
+//   }
    return;
 }
 
