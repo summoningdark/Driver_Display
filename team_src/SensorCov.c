@@ -11,6 +11,7 @@
 #include "Flash2803x_API_Library.h"
 
 #define round(x) ((x)>=0?(int)((x)+0.5):(int)((x)-0.5))
+#define MAX_AH 40.0
 
 extern void EraseFlashB(void);
 extern int WriteFloatFlashB(Uint32 Address, float Value);
@@ -70,8 +71,8 @@ char BatGraphFlag = 0;			//default to bar graph
 float CellVolt[120] = {0};		//holds cell voltages
 char CellGraph[128] = {0};		//holds cell graph
 float MaxCell=0, MinCell=5;		//max and min cell voltages
-int MaxN=23, MinN=5;			//max and min cell numbers
-int MaxB=1, MinB=4;				//max and min BIM numbers
+int MaxN=0, MinN=32;			//max and min cell numbers
+int MaxB=0, MinB=5;				//max and min BIM numbers
 int NCells = 0;					//total number of cells with good data
 float CellChargeV = 4.5;		//Cell Max Charge Voltage
 float CellDeadV = 2.5;			//Cell Max Discharge Voltage
@@ -92,7 +93,6 @@ void SensorCov()
 void SensorCovInit()
 {
 	int tmp;
-	FLASH_ST FlashStatus;
 	//config input buttons
 	ButtonGpioInit();
 	ConfigLED0();
@@ -202,7 +202,7 @@ void SensorCovMeasure()
 	break;
 	}
 
-	if (isStopWatchComplete(CANvars[6].Timeout))
+	if (isStopWatchComplete(CANvars[6].Timeout))	//check tritium bus voltage
 	{
 		SetLEDs(IND2OFF,IND2MASK);
 	}
@@ -229,9 +229,17 @@ void SensorCovMeasure()
 //check for extra super secret button press to reset AmpHours counter
 	if ((ButtonStatus & BTN_UP) && (ButtonStatus & BTN_SELECT))
 	{
+		set_font(FontLarge);
+		set_cursor(0,23);
+		clear_screen(0);
+		print_cstr("AH Reset", 0, 0);
 		EraseFlashB();
 		AmpHoursOffset = 0;
 		AmpHours_pointer = 0;
+		WriteFloatFlashB(0x3F4000L, AmpHoursOffset);
+		delay_ms(500);
+		clear_screen(0);
+		DisplayRefresh=1;
 	}
 
 	//check if current AmpHours differ from stored offset by .1 or more, if so update
@@ -885,11 +893,11 @@ void SensorCovMeasure()
 			}
 			MaxCell = 0;			//reset max/min cells
 			MinCell = 5;
-		}
+		}//endif display refresh
 
 		DisplayRefresh = 0;						//by the time we get here, the display is redrawn
 
-		if(BatMonCell == 30)	//if we have all the cell voltages, redraw the graph
+		if(BatMonCell == 28)					//if we have all the cell voltages, redraw the graph
 		{
 			if(BatGraphFlag)
 			{	//calculate Histogram
@@ -954,24 +962,24 @@ void SensorCovMeasure()
 			if(isStopWatchComplete(CellTime_watch))	//this stopwatch limits spamming the bus with Cell voltage requests
 			{
 				EALLOW;
-				//set up mailbox(11)
+				//set up mailbox(31)
 				ECanaShadow.CANME.all = ECanaRegs.CANME.all;	//get current CAN registers
 				ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;	//get current CAN registers
 
-				ECanaShadow.CANME.bit.ME11 = 0;
+				ECanaShadow.CANME.bit.ME31 = 0;
 				ECanaRegs.CANME.all = ECanaShadow.CANME.all;	//disable mailboxes so we can change the ID
 
 				//mailbox IDs, Cell voltages start at 0x310
-				ECanaMboxes.MBOX11.MSGID.bit.STDMSGID = 0x310+BatMonCell;
+				ECanaMboxes.MBOX31.MSGID.bit.STDMSGID = 0x310+BatMonCell;
 
-				ECanaMboxes.MBOX11.MSGCTRL.bit.RTR = 1;	//send RTR
+				ECanaMboxes.MBOX31.MSGCTRL.bit.RTR = 1;	//send RTR
 
-				ECanaShadow.CANME.bit.ME11 = 1;			//enable mailbox 11
+				ECanaShadow.CANME.bit.ME31 = 1;			//enable mailbox 11
 				ECanaRegs.CANME.all = ECanaShadow.CANME.all;
 				EDIS;
 
 				//request that the mailbox be sent
-				ECanaShadow.CANTRS.bit.TRS11 = 1;				//mark mailbox 11 for RTR
+				ECanaShadow.CANTRS.bit.TRS31 = 1;				//mark mailbox 31 for RTR
 				ECanaRegs.CANTRS.all = ECanaShadow.CANTRS.all;	//set in real registers
 
 				StopWatchRestart(CellVolt_watch);		//restart timeout
@@ -1051,7 +1059,6 @@ void SensorCovMeasure()
 	break;			//end case BATTMON
 
 	case FUELG:
-		//note Fuel Gauge automatically sets CAN variable 1 to be Tritium Bus Amp Hours
 		if (DisplayRefresh)		//do initial screen drawing
 			{
 				SetLEDs(BTN_BACK_GREEN | BTN_MENU_GREEN,BTN_ALL_MASK);
@@ -1069,6 +1076,31 @@ void SensorCovMeasure()
 				print_char('F',0,0);
 				DisplayRefresh = 0;
 			}
+
+		if(isStopWatchComplete(Refresh_watch) || DisplayRefresh || isStopWatchComplete(CANvars[8].Timeout))	//if new can data, data timeout, or flag for redraw
+		{
+			if(isStopWatchComplete(CANvars[8].Timeout))
+			{
+				set_cursor(5,50);			//center the value
+				set_font(FontLarge);
+				print_cstr("XXX",0,0);		//print some Xs
+			}
+			else
+			{
+				//draw percentage bar
+				tmpFloat = (MAX_AH-CANvars[8].data.F32)/MAX_AH;
+				if (tmpFloat>=0)
+				{
+					status_bar(2,40,125,58,tmpFloat,2);
+				}
+				else	//used over max AH draw a bunch of !
+				{
+					set_cursor(5,41);				//center the value
+					set_font(FontLarge);
+					print_cstr("! ! !",0,0);		//print some !s
+				}
+			}
+		}
 
 		switch(GetButtonPress())
 		{

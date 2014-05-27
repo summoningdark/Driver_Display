@@ -134,7 +134,7 @@ void CANSetup()
 	ECanaShadow.CANMD.all = ECanaRegs.CANMD.all;
 	ECanaShadow.CANME.all = ECanaRegs.CANME.all;
 
-	//todo USER: Node specifc CAN setup
+
 	EALLOW;
 
 	// create mailbox for all Receive and transmit IDs
@@ -368,13 +368,13 @@ void ClearMailBoxes()
 
 char FillCAN(unsigned int Mbox)
 {
-	//todo USER: setup for all transmit MBOXs
+
 	struct ECAN_REGS ECanaShadow;
 	ECanaShadow.CANMC.all = ECanaRegs.CANMC.all;
 	switch (Mbox)								//choose mailbox
 	{
 	case HEARTBEAT_BOX:
-		//todo Nathan define heartbeat
+
 		EALLOW;
 		ECanaShadow.CANMC.bit.MBNR = Mbox;
 		ECanaShadow.CANMC.bit.CDR = 1;
@@ -404,7 +404,7 @@ void SendCAN(unsigned int Mbox)
 	mask = 1 << Mbox;
 	ECanaRegs.CANTRS.all = mask;
 
-	//todo Nathan: calibrate sendcan stopwatch
+
 
 	ECanaShadow.CANMC.all = ECanaRegs.CANMC.all;
 	if (ECanaShadow.CANMC.bit.CCR == 1)
@@ -442,11 +442,11 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
   	unsigned int mailbox_nr;
   	ECanaShadow.CANGIF1.bit.MIV1 =  ECanaRegs.CANGIF1.bit.MIV1;
   	mailbox_nr = ECanaShadow.CANGIF1.bit.MIV1;
-  	//todo USER: Setup ops command
+
   	switch(mailbox_nr)
   	{
   	case COMMAND_BOX:
-  			//todo Nathan: Define Command frame
+
   			//proposed:
   			//HIGH 4 BYTES = Uint32 ID
   			//LOW 4 BYTES = Uint32 change to
@@ -466,7 +466,6 @@ __interrupt void ECAN1INTA_ISR(void)  // eCAN-A
 			ECanaRegs.CANRMP.bit.RMP0 = 1;
 	break;
 
-		//todo USER: Setup other reads
 	case VARIABLE1_BOX:
 		CANvars[0].data.U32 = ECanaMboxes.MBOX2.MDH.all;
 		CANvars[0].data.U64 = CANvars[0].data.U64 << 32L;
